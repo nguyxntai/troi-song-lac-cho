@@ -1,0 +1,138 @@
+[gd_scene format=3 uid="uid://7oc03jx5owtn"]
+
+[ext_resource type="Script" uid="uid://dqoja5os5lni4" path="res://scripts/nam_chef.gd" id="1_0wfyh"]
+[ext_resource type="PackedScene" uid="uid://cljwartj83xo5" path="res://assets/Nam/Nam.glb" id="2_0wfyh"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jyhfs"]
+
+[sub_resource type="Sky" id="Sky_tbgi4"]
+sky_material = SubResource("ProceduralSkyMaterial_jyhfs")
+
+[sub_resource type="Environment" id="Environment_tefeu"]
+background_mode = 2
+sky = SubResource("Sky_tbgi4")
+tonemap_mode = 3
+
+[sub_resource type="BoxMesh" id="BoxMesh_o5qli"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
+albedo_color = Color(0.13958722, 0.21876556, 0.12710819, 1)
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_jyhfs"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o6xl0"]
+albedo_color = Color(0.42692798, 0.23666447, 0, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tbgi4"]
+size = Vector3(1.2, 1, 35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tipki"]
+albedo_color = Color(0.4862745, 0.2901961, 0.16078432, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_85g3d"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_choun"]
+size = Vector3(4, 0.5, 10)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ya4ey"]
+
+[node name="Main" type="Node3D" unique_id=1134285825]
+
+[node name="MainCamera" type="Camera3D" parent="." unique_id=886593741]
+transform = Transform3D(1, 0, 0, 0, 0.57357645, 0.81915206, 0, -0.81915206, 0.57357645, 0, 5, 4)
+visible = false
+current = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1842775138]
+transform = Transform3D(1, 0, 0, 0, 0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, -13.074, 10, -18)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=362603109]
+environment = SubResource("Environment_tefeu")
+
+[node name="River" type="MeshInstance3D" parent="." unique_id=78945871]
+transform = Transform3D(26.612177, 0, 0, 0, 0.029, 0, 0, 0, 34.188923, 0, 0, 0)
+mesh = SubResource("BoxMesh_o5qli")
+surface_material_override/0 = SubResource("StandardMaterial3D_0wfyh")
+
+[node name="RiverBankLeft" type="StaticBody3D" parent="." unique_id=1138811024]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.226153, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RiverBankLeft" unique_id=885048166]
+transform = Transform3D(1.1839389, 0, 0, 0, 1, 0, 0, 0, 34.57922, -10.549936, 0, 0)
+mesh = SubResource("BoxMesh_jyhfs")
+surface_material_override/0 = SubResource("StandardMaterial3D_o6xl0")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RiverBankLeft" unique_id=1651698208]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.543089, 0, 0)
+shape = SubResource("BoxShape3D_tbgi4")
+
+[node name="RiverBankRight" type="StaticBody3D" parent="." unique_id=1102838789]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.278582, 0, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RiverBankRight" unique_id=1561751574]
+transform = Transform3D(1.1839389, 0, 0, 0, 1, 0, 0, 0, 34.57922, -10.549936, 0, 0)
+mesh = SubResource("BoxMesh_jyhfs")
+surface_material_override/0 = SubResource("StandardMaterial3D_tipki")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RiverBankRight" unique_id=883017929]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.543089, 0, 0)
+shape = SubResource("BoxShape3D_tbgi4")
+
+[node name="KitchenBoat" type="StaticBody3D" parent="." unique_id=1658112950]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="KitchenBoat" unique_id=1350793545]
+transform = Transform3D(4, 0, 0, 0, 0.5, 0, 0, 0, 10, 0, 0.3, 0)
+mesh = SubResource("BoxMesh_85g3d")
+
+[node name="BoatCollision" type="CollisionShape3D" parent="KitchenBoat" unique_id=2099204557]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+shape = SubResource("BoxShape3D_choun")
+
+[node name="HoldPosition" type="Marker3D" parent="KitchenBoat" unique_id=1898719158]
+
+[node name="NamChef" type="CharacterBody3D" parent="." unique_id=1084202694]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, 0)
+script = ExtResource("1_0wfyh")
+
+[node name="Nam" parent="NamChef" unique_id=1223251716 instance=ExtResource("2_0wfyh")]
+
+[node name="Skeleton3D" parent="NamChef/Nam/Armature" parent_id_path=PackedInt32Array(1223251716, 1637971923) index="0" unique_id=214215590]
+bones/0/position = Vector3(-0.34613693, -2.4266424, -33.326374)
+bones/0/rotation = Quaternion(-0.71293855, 0.024282156, -0.03608588, 0.6998763)
+bones/1/rotation = Quaternion(-0.009972409, -0.0010639013, -0.017338578, 0.99979943)
+bones/2/rotation = Quaternion(-0.033504046, 0.00057602074, -0.0012283111, 0.9994377)
+bones/3/rotation = Quaternion(-0.03350295, 0.00078391284, -0.0012469911, 0.99943763)
+bones/4/rotation = Quaternion(-0.00433219, -0.0023622946, -0.0041286023, 0.9999793)
+bones/5/rotation = Quaternion(-0.06649748, -0.048214555, -0.08406036, 0.99306965)
+bones/7/rotation = Quaternion(-0.5806793, -0.42446718, 0.6011439, -0.34823173)
+bones/8/rotation = Quaternion(0.46396104, 0.16552289, 0.05927824, 0.86823297)
+bones/9/rotation = Quaternion(-0.057310313, 0.004572356, 0.07652773, 0.99540854)
+bones/10/rotation = Quaternion(0.07795371, 0.004459469, 0.0641948, 0.99487805)
+bones/11/rotation = Quaternion(0.10316251, -0.025260214, -0.10961319, 0.9882835)
+bones/12/rotation = Quaternion(0.25897694, 0.10464551, -0.02265172, 0.95993084)
+bones/13/rotation = Quaternion(0.15449901, 0.06473534, -0.013083105, 0.98578304)
+bones/15/rotation = Quaternion(0.60448945, -0.38344294, 0.5935918, 0.367713)
+bones/16/position = Vector3(-2.832732e-07, 12.093331, 2.0125353e-06)
+bones/16/rotation = Quaternion(0.48774394, 0.08128365, 0.17858687, 0.8506501)
+bones/17/rotation = Quaternion(-0.06364388, -0.0015007951, -0.22168298, 0.9730385)
+bones/18/position = Vector3(-8.5369476e-07, 12.367126, 1.7665166e-06)
+bones/18/rotation = Quaternion(0.04966397, -0.09973416, -0.17015159, 0.9790991)
+bones/19/rotation = Quaternion(0.10679685, 0.015977329, 0.011432011, 0.99408674)
+bones/20/rotation = Quaternion(0.3349507, -0.04414241, 0.021058803, 0.9409655)
+bones/21/rotation = Quaternion(0.23732178, -0.016606241, 0.015578503, 0.9711642)
+bones/23/rotation = Quaternion(0.06268825, 0.04806034, 0.9869862, -0.14006718)
+bones/24/rotation = Quaternion(-0.23034988, -0.0073554097, -0.036986664, 0.9723769)
+bones/25/rotation = Quaternion(0.52726495, -0.079782814, -0.048592445, 0.8445504)
+bones/26/rotation = Quaternion(0.38033217, -0.06311864, 0.028486516, 0.9222537)
+bones/28/rotation = Quaternion(-0.09614992, -0.03517156, 0.9830564, 0.1520473)
+bones/29/rotation = Quaternion(-0.12464447, 0.04946194, 0.038778186, 0.9902089)
+bones/30/rotation = Quaternion(0.47819728, 0.088751055, 0.07738366, 0.8703232)
+bones/31/rotation = Quaternion(0.39739656, 0.06931652, -0.026419105, 0.9146438)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NamChef" unique_id=617257304]
+transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0.54, 0)
+shape = SubResource("CapsuleShape3D_ya4ey")
+
+[editable path="NamChef/Nam"]
