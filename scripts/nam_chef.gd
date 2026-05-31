@@ -8,6 +8,17 @@ extends CharacterBody3D
 # Đường dẫn chuẩn đi vào mô hình Nam để lấy bộ phát Animation
 @onready var anim_player: AnimationPlayer = $Nam/AnimationPlayer
 
+func _ready() -> void:
+	# ==========================================
+	# CẤU HÌNH TRIỆT TIÊU LỖI NẢY THÀNH TÀU & QUÁN TÍNH
+	# ==========================================
+	slide_on_ceiling = false
+	floor_max_angle = deg_to_rad(45.0)
+	floor_snap_length = 0.1
+	
+	# Khóa cứng cơ chế tắt quán tính nền khi rời sàn thuyền dập dềnh
+	platform_on_leave = PlatformOnLeave.PLATFORM_ON_LEAVE_DO_NOTHING
+
 func _physics_process(delta: float) -> void:
 	# ==========================================
 	# 1. XỬ LÝ VẬT LÝ (DI CHUYỂN, NHẢY, TRỌNG LỰC)
@@ -16,10 +27,12 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	else:
-		velocity.y = 0
+		# Lực âm nhỏ giúp khóa chặt chân Nam vào Moving Platform của thuyền
+		velocity.y = -0.1
 
 	# Nhảy khi đang đứng trên sàn và bấm nút ui_accept (Space)
 	if is_on_floor() and Input.is_action_just_pressed("ui_accept"):
+		# Lực nhảy thuần túy cố định, không bị ảnh hưởng bởi vận tốc thuyền
 		velocity.y = JUMP_SPEED
 
 	# Lấy hướng bấm nút di chuyển (W, A, S, D)
@@ -45,21 +58,13 @@ func _physics_process(delta: float) -> void:
 	# ==========================================
 	# 2. XỬ LÝ QUẢN LÝ ANIMATION (HÒA TRỘN MƯỢT MÀ)
 	# ==========================================
-	
 	if not is_on_floor():
-		# Khi đang ở trên không trung -> Giữ animation nhảy mượt mà
 		if anim_player.current_animation != "jump":
-			# Tham số 0.15 giúp chuyển đổi từ dáng chạy/đứng sang dáng nhảy êm hơn
 			anim_player.play("jump", 0.15)
 	else:
-		# Khi đang đứng chạm sàn ghe ổn định
 		if direction != Vector3.ZERO:
-			# Nếu đang di chuyển -> Phát hoạt ảnh đi bộ
 			if anim_player.current_animation != "walk":
-				# Hòa trộn 0.15 giây giúp Nam từ tư thế đứng im chuyển sang chạy không bị giật mình
 				anim_player.play("walk", 0.15)
 		else:
-			# Nếu đứng yên không bấm nút -> Trả về hoạt ảnh đứng im nghỉ ngơi dập dềnh
 			if anim_player.current_animation != "idle":
-				# QUAN TRỌNG: Hòa trộn 0.25 giây giúp Nam từ tư thế chạy "hãm phanh" từ từ mượt mà về tư thế idle
 				anim_player.play("idle", 0.25)

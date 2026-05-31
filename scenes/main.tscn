@@ -3,9 +3,16 @@
 [ext_resource type="Script" uid="uid://dqoja5os5lni4" path="res://scripts/nam_chef.gd" id="1_0wfyh"]
 [ext_resource type="PackedScene" uid="uid://cljwartj83xo5" path="res://assets/Nam/Nam.glb" id="2_0wfyh"]
 [ext_resource type="Shape3D" uid="uid://dr17ahxsr6sy7" path="res://assets/Ghe/ghe_collision.res" id="2_jyhfs"]
+[ext_resource type="Shader" uid="uid://drkvkcubyy6i0" path="res://shaders/3d_water.gdshader" id="2_tefeu"]
 [ext_resource type="PackedScene" uid="uid://sn5tyy1xcnrj" path="res://assets/Ghe/Ghe.glb" id="3_0wfyh"]
+[ext_resource type="Script" uid="uid://dyljkugf4c68f" path="res://scripts/boat.gd" id="3_o6xl0"]
+[ext_resource type="Script" uid="uid://c25ld1413g8uh" path="res://scripts/camera_follow.gd" id="5_0wfyh"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jyhfs"]
+sky_top_color = Color(0.12, 0.42, 0.85, 1)
+sky_horizon_color = Color(0.68, 0.86, 0.96, 1)
+ground_bottom_color = Color(0.1, 0.12, 0.15, 1)
+ground_horizon_color = Color(0.68, 0.86, 0.96, 1)
 
 [sub_resource type="Sky" id="Sky_tbgi4"]
 sky_material = SubResource("ProceduralSkyMaterial_jyhfs")
@@ -13,13 +20,64 @@ sky_material = SubResource("ProceduralSkyMaterial_jyhfs")
 [sub_resource type="Environment" id="Environment_tefeu"]
 background_mode = 2
 sky = SubResource("Sky_tbgi4")
-tonemap_mode = 3
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.78, 0.95, 1)
+ambient_light_energy = 0.45
+tonemap_mode = 2
+tonemap_exposure = 1.05
+ssao_enabled = true
+ssao_radius = 1.2
+ssil_enabled = true
+glow_enabled = true
+glow_intensity = 0.5
+glow_strength = 0.8
+glow_bloom = 0.08
+fog_light_color = Color(0.78, 0.86, 0.98, 1)
+fog_light_energy = 0.8
+fog_sun_scatter = 0.25
+fog_density = 0.022
+fog_aerial_perspective = 0.2
 
-[sub_resource type="BoxMesh" id="BoxMesh_o5qli"]
+[sub_resource type="PlaneMesh" id="PlaneMesh_tbgi4"]
+size = Vector2(25, 50)
+subdivide_width = 128
+subdivide_depth = 128
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
-albedo_color = Color(0.13958722, 0.21876556, 0.12710819, 1)
-roughness = 0.2
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_tefeu"]
+noise_type = 2
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_o6xl0"]
+noise = SubResource("FastNoiseLite_tefeu")
+seamless = true
+
+[sub_resource type="Gradient" id="Gradient_tefeu"]
+colors = PackedColorArray(0.24368683, 0.41659728, 0.3405743, 1, 0.39215687, 0.60784316, 0.53333336, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_o6xl0"]
+noise_type = 3
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_tipki"]
+noise = SubResource("FastNoiseLite_o6xl0")
+color_ramp = SubResource("Gradient_tefeu")
+seamless = true
+as_normal_map = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o6xl0"]
+render_priority = 0
+shader = ExtResource("2_tefeu")
+shader_parameter/water_color = Color(0.39, 0.61, 0.53, 1)
+shader_parameter/deep_water_color = Color(0.22, 0.38, 0.31, 1)
+shader_parameter/roughness = 0.400000019
+shader_parameter/metallic = 0.0
+shader_parameter/speed = 0.01
+shader_parameter/noise_scale = 1.0
+shader_parameter/wave_threshold = 0.5500000228651201
+shader_parameter/beer_law_factor = 1.5
+shader_parameter/_distance = 15.0
+shader_parameter/foam_color = Color(1, 1, 1, 1)
+shader_parameter/foam_scale = 0.30000001425
+shader_parameter/noise_texture = SubResource("NoiseTexture2D_o6xl0")
+shader_parameter/normalmap_texture = SubResource("NoiseTexture2D_tipki")
 
 [sub_resource type="BoxMesh" id="BoxMesh_jyhfs"]
 
@@ -38,20 +96,27 @@ albedo_color = Color(0.4862745, 0.2901961, 0.16078432, 1)
 
 [node name="MainCamera" type="Camera3D" parent="." unique_id=886593741]
 transform = Transform3D(1, 0, 0, 0, 0.42261824, 0.9063078, 0, -0.9063078, 0.42261824, 0, 7, 3)
-visible = false
 current = true
+script = ExtResource("5_0wfyh")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1842775138]
-transform = Transform3D(1, 0, 0, 0, 0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, -13.074, 10, -18)
+transform = Transform3D(0.7071, 0, -0.7071, 0.2418, 0.9397, 0.2418, 0.6645, -0.342, 0.6645, 0, 0, 0)
+light_color = Color(1, 0.96, 0.88, 1)
+light_energy = 1.35
+light_indirect_energy = 1.2
+light_volumetric_fog_energy = 0.5
 shadow_enabled = true
+shadow_bias = 0.02
+shadow_normal_bias = 1.5
+shadow_blur = 1.6
+directional_shadow_max_distance = 60.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=362603109]
 environment = SubResource("Environment_tefeu")
 
-[node name="River" type="MeshInstance3D" parent="." unique_id=78945871]
-transform = Transform3D(26.612177, 0, 0, 0, 0.029, 0, 0, 0, 34.188923, 0, 0, 0)
-mesh = SubResource("BoxMesh_o5qli")
-surface_material_override/0 = SubResource("StandardMaterial3D_0wfyh")
+[node name="River" type="MeshInstance3D" parent="." unique_id=1129790937]
+mesh = SubResource("PlaneMesh_tbgi4")
+surface_material_override/0 = SubResource("ShaderMaterial_o6xl0")
 
 [node name="RiverBankLeft" type="StaticBody3D" parent="." unique_id=1138811024]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.226153, 0, 0)
@@ -77,32 +142,45 @@ surface_material_override/0 = SubResource("StandardMaterial3D_tipki")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.543089, 0, 0)
 shape = SubResource("BoxShape3D_tbgi4")
 
-[node name="KitchenBoat" type="StaticBody3D" parent="." unique_id=1658112950]
+[node name="KitchenBoat" type="AnimatableBody3D" parent="." unique_id=855176316]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+script = ExtResource("3_o6xl0")
+float_speed = 3.0
 
 [node name="Ghe" parent="KitchenBoat" unique_id=1350793545 instance=ExtResource("3_0wfyh")]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0.15, 0)
 
 [node name="HoldPosition" type="Marker3D" parent="KitchenBoat" unique_id=1898719158]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="KitchenBoat" unique_id=1562058523]
+[node name="BoatCollision" type="CollisionShape3D" parent="KitchenBoat" unique_id=1562058523]
 transform = Transform3D(8, 0, 0, 0, 0, -8, 0, 8, 0, 0, 0.14999998, 0)
 shape = ExtResource("2_jyhfs")
 
-[node name="GuestBoat" type="StaticBody3D" parent="." unique_id=1001234567]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 0)
+[node name="GuestBoat" type="AnimatableBody3D" parent="." unique_id=754735627]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, -1, 0)
+script = ExtResource("3_o6xl0")
 
 [node name="Ghe" parent="GuestBoat" unique_id=1001234568 instance=ExtResource("3_0wfyh")]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0.15, 0)
 
 [node name="HoldPosition" type="Marker3D" parent="GuestBoat" unique_id=1001234569]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="GuestBoat" unique_id=1001234570]
+[node name="BoatCollision" type="CollisionShape3D" parent="GuestBoat" unique_id=1001234570]
 transform = Transform3D(8, 0, 0, 0, 0, -8, 0, 8, 0, 0, 0.14999998, 0)
 shape = ExtResource("2_jyhfs")
 
 [node name="NamChef" type="CharacterBody3D" parent="." unique_id=1084202694]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2613235, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 script = ExtResource("1_0wfyh")
+
+[node name="NamChefLight" type="OmniLight3D" parent="NamChef" unique_id=1084202695]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0.8)
+light_color = Color(1, 0.96, 0.88, 1)
+light_energy = 0.65
+light_indirect_energy = 0.0
+light_specular = 0.35
+omni_range = 3.0
+omni_attenuation = 1.3
 
 [node name="Nam" parent="NamChef" unique_id=1223251716 instance=ExtResource("2_0wfyh")]
 
