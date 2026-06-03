@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://teoo4von3o1i"
-path.s3tc="res://.godot/imported/XaXi_1.png-dcc47b8685d9d46b2d6cf9ab91496aca.s3tc.ctex"
+uid="uid://biqs58td25sv"
+path.s3tc="res://.godot/imported/Tulanh_0.png-2325c8475221335d8c751923d195f39b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "82b468872bddb9f0d3bc7862237ac786"
+"md5": "e2f72e6a71b427f4cfda91da78e602c7"
 }
 
 [deps]
 
-source_file="res://assets/DoAn/XaXi_1.png"
-dest_files=["res://.godot/imported/XaXi_1.png-dcc47b8685d9d46b2d6cf9ab91496aca.s3tc.ctex"]
+source_file="res://assets/Khac/Tulanh_0.png"
+dest_files=["res://.godot/imported/Tulanh_0.png-2325c8475221335d8c751923d195f39b.s3tc.ctex"]
 
 [params]
 

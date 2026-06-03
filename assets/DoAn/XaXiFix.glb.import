@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dmvh7igtfv7ds"
-path="res://.godot/imported/XaXi.glb-6bc14170300b6d9a0e0295b6a58b4aaf.scn"
+uid="uid://bk441t8w3eb60"
+path="res://.godot/imported/XaXiFix.glb-a6689b1ad53f3c2b7f44bd7f842bb1d9.scn"
 
 [deps]
 
-source_file="res://assets/DoAn/XaXi.glb"
-dest_files=["res://.godot/imported/XaXi.glb-6bc14170300b6d9a0e0295b6a58b4aaf.scn"]
+source_file="res://assets/DoAn/XaXiFix.glb"
+dest_files=["res://.godot/imported/XaXiFix.glb-a6689b1ad53f3c2b7f44bd7f842bb1d9.scn"]
 
 [params]
 

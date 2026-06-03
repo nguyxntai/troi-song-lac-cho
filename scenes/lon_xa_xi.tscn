@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://xxx313ud30lo"]
+
+[ext_resource type="PackedScene" uid="uid://bk441t8w3eb60" path="res://assets/DoAn/XaXiFix.glb" id="1_ekvu7"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_d8qx3"]
+height = 0.6864929
+radius = 0.1953125
+
+[node name="LonXaXi" type="Area3D" unique_id=2111721512]
+transform = Transform3D(-9.616506e-07, 22, -9.616506e-07, 0, -9.616506e-07, -22, -22, -9.616506e-07, 4.203508e-14, 0, 0, 0)
+
+[node name="XaXiFix" parent="." unique_id=979639843 instance=ExtResource("1_ekvu7")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=776821542]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.005, 0, 0)
+shape = SubResource("CylinderShape3D_d8qx3")

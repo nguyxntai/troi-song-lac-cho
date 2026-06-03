@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6fyrwgb1cvm3"
-path.s3tc="res://.godot/imported/XaXi_0.jpg-627252880b3e4073019a8418e097a0bc.s3tc.ctex"
+uid="uid://kalr8qahbbi1"
+path.s3tc="res://.godot/imported/Tulanh_2.png-2544f7c9982251d221fc4e18760e609b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "4bdccfbe0699f95ecb7e0b2103a9b6af"
+"md5": "98880b7d5d1ba464203a31850602098d"
 }
 
 [deps]
 
-source_file="res://assets/DoAn/XaXi_0.jpg"
-dest_files=["res://.godot/imported/XaXi_0.jpg-627252880b3e4073019a8418e097a0bc.s3tc.ctex"]
+source_file="res://assets/Khac/Tulanh_2.png"
+dest_files=["res://.godot/imported/Tulanh_2.png-2544f7c9982251d221fc4e18760e609b.s3tc.ctex"]
 
 [params]
 
@@ -25,12 +25,12 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
-roughness/mode=0
-roughness/src_normal=""
+roughness/mode=1
+roughness/src_normal="res://assets/Khac/Tulanh_2.png"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2
