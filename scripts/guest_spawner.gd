@@ -21,7 +21,6 @@ const GUEST_DEFINITIONS: Array[Dictionary] = [
 @export var auto_spawn: bool = true
 @export var initial_spawn_delay: float = 10.0
 @export var spawn_interval: float = 10.0
-@export var max_guests: int = 4
 @export var repeat_until_full: bool = true
 @export var spawn_slot_spacing: float = 0.7
 @export var spawn_point_path: NodePath = NodePath("../GuestBoat/GuestSpawnPoint")
@@ -103,10 +102,8 @@ func _start_spawn_loop() -> void:
 
 	while is_inside_tree():
 		_cleanup_active_guests()
-		if _active_guests.size() < max_guests:
-			var guest: Node = spawn_random_guest()
-			if not guest and _get_free_table_spots().is_empty():
-				return
+		if _active_guests.size() < _get_guest_limit() and not _get_free_table_spots().is_empty():
+			spawn_random_guest()
 
 		if not repeat_until_full:
 			return
@@ -135,7 +132,8 @@ func _build_route(seat: Node3D, table: Node3D) -> Dictionary:
 
 
 func _get_spawn_position(spawn_point: Node3D, slot_index: int) -> Vector3:
-	var start_offset: float = -float(max_guests - 1) * spawn_slot_spacing * 0.5
+	var guest_limit: int = _get_guest_limit()
+	var start_offset: float = -float(guest_limit - 1) * spawn_slot_spacing * 0.5
 	var x_offset: float = start_offset + float(slot_index) * spawn_slot_spacing
 	return spawn_point.global_position + Vector3.RIGHT * x_offset
 
@@ -146,11 +144,16 @@ func _get_next_spawn_slot_index() -> int:
 		if is_instance_valid(guest) and guest.has_meta("spawn_slot_index"):
 			used_slots[int(guest.get_meta("spawn_slot_index"))] = true
 
-	for slot_index in range(max_guests):
+	var guest_limit: int = _get_guest_limit()
+	for slot_index in range(guest_limit):
 		if not used_slots.has(slot_index):
 			return slot_index
 
-	return _active_guests.size() % max(1, max_guests)
+	return _active_guests.size() % guest_limit
+
+
+func _get_guest_limit() -> int:
+	return max(1, _get_table_nodes().size())
 
 
 func _get_node3d(path: NodePath) -> Node3D:

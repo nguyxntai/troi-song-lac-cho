@@ -9,6 +9,7 @@ enum State {
 	WALK_TO_AISLE,
 	WALK_TO_SEAT,
 	SITTING,
+	LEAVING,
 }
 
 const ANIM_IDLE: StringName = &"idle"
@@ -16,12 +17,17 @@ const ANIM_WALK: StringName = &"walk"
 const ANIM_SIT: StringName = &"siteat"
 const INTERACT_MARKER_CENTER: Vector3 = Vector3(0.0, 0.0, 0.75)
 const INTERACT_MARKER_SIZE: Vector3 = Vector3(0.55, 0.025, 0.55)
+const HOLD_RING_STEPS: int = 72
+const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 
 @export var move_speed: float = 1.35
 @export var rotation_speed: float = 8.0
 @export var stop_distance: float = 0.08
 @export var jump_duration: float = 0.8
 @export var jump_height: float = 0.85
+@export var food_wait_time: float = 30.0
+@export var eat_time: float = 8.0
+@export var interact_hold_time: float = 2.0
 @export var interact_action: StringName = &"interact"
 
 var _state: int = State.IDLE
@@ -40,12 +46,23 @@ var _model_root: Node3D
 var _reserved_table: Node3D
 var _player_in_range: Node3D
 var _interact_marker: MeshInstance3D
-var _interact_prompt: Label3D
+var _interact_prompt: Sprite3D
+var _hold_ring_root: Node3D
+var _hold_ring_mesh: ImmediateMesh
+var _patience_bar_root: Node3D
+var _patience_fill: MeshInstance3D
+var _patience_material: StandardMaterial3D
+var _spawn_position: Vector3 = Vector3.ZERO
+var _food_timer: float = 0.0
+var _eat_timer: float = 0.0
+var _interact_hold_timer: float = 0.0
+var _has_food: bool = false
 
 
 func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) -> void:
 	var spawn_point: Node3D = route.get("spawn_point") as Node3D
 	var spawn_position: Vector3 = route.get("spawn_position", spawn_point.global_position if spawn_point else Vector3.ZERO)
+	_spawn_position = spawn_position
 	_ghebe_point = route.get("ghebe_point") as Node3D
 	_landing_point = route.get("landing_point") as Node3D
 	_aisle_point = route.get("aisle_point") as Node3D
@@ -64,6 +81,7 @@ func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) 
 
 	_setup_model(model_scene)
 	_setup_interact_visuals()
+	_setup_patience_bar()
 	_apply_animations(animations)
 	_start_route()
 
@@ -74,14 +92,20 @@ func _physics_process(delta: float) -> void:
 			_process_walk(delta)
 		State.JUMP_TO_GUEST_BOAT:
 			_process_jump(delta)
+		State.LEAVING:
+			_process_leave(delta)
 
 
 func _process(_delta: float) -> void:
+	if _state == State.SITTING:
+		_process_food_wait(_delta)
+		return
+
 	if _state != State.WAIT_FOR_INTERACT:
 		return
 
 	_update_interact_prompt()
-	if _player_in_range and _is_player_on_interact_marker() and Input.is_action_just_pressed(interact_action):
+	if _process_hold_interaction(_delta, _can_start_guest()):
 		_begin_route()
 
 
@@ -123,19 +147,71 @@ func _setup_interact_visuals() -> void:
 	_interact_marker.position = INTERACT_MARKER_CENTER + Vector3.UP * 0.035
 	add_child(_interact_marker)
 
-	_interact_prompt = Label3D.new()
+	_interact_prompt = Sprite3D.new()
 	_interact_prompt.name = "InteractPrompt"
-	_interact_prompt.text = "E"
-	_interact_prompt.font_size = 96
-	_interact_prompt.pixel_size = 0.008
-	_interact_prompt.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	_interact_prompt.outline_size = 16
-	_interact_prompt.outline_modulate = Color(0.0, 0.25, 0.75, 1.0)
+	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
+	_interact_prompt.pixel_size = 0.002
 	_interact_prompt.position = Vector3(0.0, 1.9, 0.0)
 	_interact_prompt.visible = false
 	_interact_prompt.set("billboard", 1)
 	_interact_prompt.set("no_depth_test", true)
 	add_child(_interact_prompt)
+
+	_setup_hold_ring()
+
+
+func _setup_hold_ring() -> void:
+	_hold_ring_root = MeshInstance3D.new()
+	_hold_ring_root.name = "HoldRing"
+	_hold_ring_root.position = _interact_prompt.position + Vector3(0.0, 0.0, 0.02)
+	_hold_ring_root.visible = false
+
+	var ring_material: StandardMaterial3D = StandardMaterial3D.new()
+	ring_material.albedo_color = Color(0.6, 1.0, 0.08, 0.98)
+	ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	_hold_ring_mesh = ImmediateMesh.new()
+	var ring_instance: MeshInstance3D = _hold_ring_root as MeshInstance3D
+	ring_instance.mesh = _hold_ring_mesh
+	ring_instance.material_override = ring_material
+	add_child(_hold_ring_root)
+
+
+func _setup_patience_bar() -> void:
+	_patience_bar_root = Node3D.new()
+	_patience_bar_root.name = "PatienceBar"
+	_patience_bar_root.position = Vector3(0.0, 2.15, 0.0)
+	_patience_bar_root.visible = false
+	add_child(_patience_bar_root)
+
+	var background_mesh: BoxMesh = BoxMesh.new()
+	background_mesh.size = Vector3(0.92, 0.08, 0.035)
+
+	var background_material: StandardMaterial3D = StandardMaterial3D.new()
+	background_material.albedo_color = Color(0.04, 0.04, 0.04, 0.75)
+	background_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	background_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	var background: MeshInstance3D = MeshInstance3D.new()
+	background.name = "Background"
+	background.mesh = background_mesh
+	background.material_override = background_material
+	_patience_bar_root.add_child(background)
+
+	var fill_mesh: BoxMesh = BoxMesh.new()
+	fill_mesh.size = Vector3(0.86, 0.05, 0.04)
+
+	_patience_material = StandardMaterial3D.new()
+	_patience_material.albedo_color = Color.GREEN
+	_patience_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	_patience_fill = MeshInstance3D.new()
+	_patience_fill.name = "Fill"
+	_patience_fill.mesh = fill_mesh
+	_patience_fill.material_override = _patience_material
+	_patience_bar_root.add_child(_patience_fill)
 
 
 func _apply_animations(animations: Dictionary) -> void:
@@ -230,6 +306,7 @@ func _start_route() -> void:
 
 func _begin_route() -> void:
 	_set_waiting_visuals(false)
+	_set_patience_bar_visible(false)
 	if not _seat_point:
 		_sit_down()
 		return
@@ -256,6 +333,7 @@ func _on_interact_area_body_entered(body: Node3D) -> void:
 func _on_interact_area_body_exited(body: Node3D) -> void:
 	if body == _player_in_range:
 		_player_in_range = null
+		_reset_hold_interaction()
 		_update_interact_prompt()
 
 
@@ -270,13 +348,92 @@ func _set_waiting_visuals(is_waiting: bool) -> void:
 		_interact_marker.visible = is_waiting
 	if not is_waiting and _interact_prompt:
 		_interact_prompt.visible = false
+		_reset_hold_interaction()
 		return
 	_update_interact_prompt()
 
 
 func _update_interact_prompt() -> void:
 	if _interact_prompt:
-		_interact_prompt.visible = _state == State.WAIT_FOR_INTERACT and _player_in_range != null and _is_player_on_interact_marker()
+		var can_start_guest: bool = _can_start_guest()
+		var can_serve_food: bool = _can_serve_food()
+		_interact_prompt.visible = can_start_guest or can_serve_food
+		if not _interact_prompt.visible:
+			_reset_hold_interaction()
+
+
+func _can_start_guest() -> bool:
+	return _state == State.WAIT_FOR_INTERACT and _player_in_range != null and _is_player_on_interact_marker()
+
+
+func _can_serve_food() -> bool:
+	return _state == State.SITTING and not _has_food and _player_in_range != null and _player_has_food() and _is_player_on_interact_marker()
+
+
+func _process_hold_interaction(delta: float, can_interact: bool) -> bool:
+	if not can_interact or not Input.is_action_pressed(interact_action):
+		_reset_hold_interaction()
+		return false
+
+	_interact_hold_timer = minf(_interact_hold_timer + delta, maxf(interact_hold_time, 0.01))
+	_update_hold_effects()
+	if _interact_hold_timer >= interact_hold_time:
+		_reset_hold_interaction()
+		return true
+
+	return false
+
+
+func _reset_hold_interaction() -> void:
+	if _interact_hold_timer <= 0.0 and (not _hold_ring_root or not _hold_ring_root.visible):
+		return
+
+	_interact_hold_timer = 0.0
+	_update_hold_effects()
+
+
+func _update_hold_effects() -> void:
+	var ratio: float = clampf(_interact_hold_timer / maxf(interact_hold_time, 0.01), 0.0, 1.0)
+	if _interact_prompt:
+		var prompt_scale: float = lerpf(1.0, 0.82, ratio)
+		_interact_prompt.scale = Vector3.ONE * prompt_scale
+
+	if _hold_ring_root:
+		_hold_ring_root.visible = ratio > 0.0
+
+	_update_hold_ring_mesh(ratio)
+
+
+func _update_hold_ring_mesh(ratio: float) -> void:
+	if not _hold_ring_mesh:
+		return
+
+	_hold_ring_mesh.clear_surfaces()
+	if ratio <= 0.0:
+		return
+
+	var inner_radius: float = 0.34
+	var outer_radius: float = 0.42
+	var angle_length: float = TAU * clampf(ratio, 0.0, 1.0)
+	var step_count: int = max(1, ceili(float(HOLD_RING_STEPS) * ratio))
+
+	_hold_ring_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(step_count):
+		var angle_a: float = angle_length * float(index) / float(step_count)
+		var angle_b: float = angle_length * float(index + 1) / float(step_count)
+		var inner_a: Vector3 = Vector3(cos(angle_a) * inner_radius, sin(angle_a) * inner_radius, 0.0)
+		var outer_a: Vector3 = Vector3(cos(angle_a) * outer_radius, sin(angle_a) * outer_radius, 0.0)
+		var inner_b: Vector3 = Vector3(cos(angle_b) * inner_radius, sin(angle_b) * inner_radius, 0.0)
+		var outer_b: Vector3 = Vector3(cos(angle_b) * outer_radius, sin(angle_b) * outer_radius, 0.0)
+
+		_hold_ring_mesh.surface_add_vertex(inner_a)
+		_hold_ring_mesh.surface_add_vertex(outer_a)
+		_hold_ring_mesh.surface_add_vertex(outer_b)
+		_hold_ring_mesh.surface_add_vertex(inner_a)
+		_hold_ring_mesh.surface_add_vertex(outer_b)
+		_hold_ring_mesh.surface_add_vertex(inner_b)
+
+	_hold_ring_mesh.surface_end()
 
 
 func _face_positive_z() -> void:
@@ -354,8 +511,107 @@ func _sit_down() -> void:
 		position = _get_local_target_position(_seat_point)
 
 	_face_nearest_table()
+	_start_food_wait()
 
 	_play_animation(ANIM_SIT, 0.1)
+
+
+func serve_food() -> void:
+	if _state != State.SITTING or _has_food:
+		return
+
+	_has_food = true
+	_eat_timer = maxf(eat_time, 0.1)
+	_set_patience_bar_visible(false)
+	_update_interact_prompt()
+
+
+func _start_food_wait() -> void:
+	_has_food = false
+	_food_timer = maxf(food_wait_time, 0.1)
+	_update_patience_bar()
+	_set_patience_bar_visible(true)
+
+
+func _process_food_wait(delta: float) -> void:
+	if _has_food:
+		_eat_timer = maxf(_eat_timer - delta, 0.0)
+		if _eat_timer <= 0.0:
+			_leave_after_eating()
+		return
+
+	_update_interact_prompt()
+	if _process_hold_interaction(delta, _can_serve_food()):
+		_consume_player_food()
+		serve_food()
+		return
+
+	_food_timer = maxf(_food_timer - delta, 0.0)
+	_update_patience_bar()
+	if _food_timer <= 0.0:
+		_leave_without_food()
+
+
+func _leave_after_eating() -> void:
+	_begin_leave()
+
+
+func _leave_without_food() -> void:
+	_begin_leave()
+
+
+func _begin_leave() -> void:
+	_state = State.LEAVING
+	_current_target = null
+	_set_waiting_visuals(false)
+	_set_patience_bar_visible(false)
+	_play_animation(ANIM_WALK)
+
+
+func _process_leave(delta: float) -> void:
+	var target_position: Vector3 = _get_local_position_from_global(_spawn_position)
+	if position.distance_to(target_position) <= stop_distance:
+		queue_free()
+		return
+
+	position = position.move_toward(target_position, move_speed * delta)
+	_face_local_position(target_position, delta)
+	_play_animation(ANIM_WALK)
+
+
+func _set_patience_bar_visible(is_visible: bool) -> void:
+	if _patience_bar_root:
+		_patience_bar_root.visible = is_visible
+
+
+func _update_patience_bar() -> void:
+	if not _patience_fill or not _patience_material:
+		return
+
+	var ratio: float = clampf(_food_timer / maxf(food_wait_time, 0.1), 0.0, 1.0)
+	_patience_fill.scale.x = ratio
+	_patience_fill.position.x = -0.43 * (1.0 - ratio)
+	_patience_material.albedo_color = Color.RED.lerp(Color.GREEN, ratio)
+
+
+func _player_has_food() -> bool:
+	var hand_slot: Node = _get_player_hand_slot()
+	return hand_slot != null and hand_slot.get_child_count() > 0
+
+
+func _consume_player_food() -> void:
+	var hand_slot: Node = _get_player_hand_slot()
+	if not hand_slot or hand_slot.get_child_count() == 0:
+		return
+
+	hand_slot.get_child(0).queue_free()
+
+
+func _get_player_hand_slot() -> Node:
+	if not _player_in_range:
+		return null
+
+	return _player_in_range.find_child("HandSlot", true, false)
 
 
 func _face_nearest_table() -> void:
@@ -378,11 +634,15 @@ func _face_nearest_table() -> void:
 
 
 func _get_local_target_position(target: Node3D) -> Vector3:
+	return _get_local_position_from_global(target.global_position)
+
+
+func _get_local_position_from_global(global_target_position: Vector3) -> Vector3:
 	var parent_node: Node3D = get_parent() as Node3D
 	if parent_node:
-		return parent_node.to_local(target.global_position)
+		return parent_node.to_local(global_target_position)
 
-	return target.global_position
+	return global_target_position
 
 
 func _face_local_position(target_position: Vector3, delta: float = -1.0) -> void:
