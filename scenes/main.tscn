@@ -143,7 +143,7 @@ directional_shadow_max_distance = 60.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=362603109]
 environment = SubResource("Environment_tefeu")
 
-[node name="GuestSpawner" type="Node" parent="."]
+[node name="GuestSpawner" type="Node" parent="." unique_id=1074906452]
 script = ExtResource("16_guests")
 
 [node name="River" type="MeshInstance3D" parent="." unique_id=1129790937]
@@ -170,15 +170,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.73, 1.281, -2.683)
 script = ExtResource("7_jkv2x")
 xa_xi_scene = ExtResource("12_jbj1t")
 
-[node name="Cube_004" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode" parent_id_path=PackedInt32Array(2100499679, 1460625776) index="0" unique_id=128005864]
+[node name="Cube_004" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode" parent_id_path=PackedInt32Array(2100499679, 1674204965) index="0" unique_id=1710067552]
 transform = Transform3D(-0.71132034, 1.820368e-16, -0.5730246, 8.711162e-17, 0.91341865, 1.8203684e-16, 0.5730246, 8.711163e-17, -0.71132034, 39.716125, 159.16641, 54.800724)
 
-[node name="CuaTulanh" type="StaticBody3D" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode/Cube_004/Cube_004_Material_0" parent_id_path=PackedInt32Array(2100499679, 2070047975) index="0" unique_id=1825093449]
+[node name="CuaTulanh" type="StaticBody3D" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode/Cube_004/Cube_004_Material_0" parent_id_path=PackedInt32Array(2100499679, 459301553) index="0" unique_id=1825093449]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode/Cube_004/Cube_004_Material_0/CuaTulanh" unique_id=129231881]
 shape = SubResource("ConvexPolygonShape3D_jkv2x")
 
-[node name="Tulanh" type="StaticBody3D" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode/Plane_004/Plane_004_Material_0" parent_id_path=PackedInt32Array(2100499679, 609344831) index="0" unique_id=195963903]
+[node name="Tulanh" type="StaticBody3D" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode/Plane_004/Plane_004_Material_0" parent_id_path=PackedInt32Array(2100499679, 493418661) index="0" unique_id=195963903]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="KitchenBoat/Tulanh/Sketchfab_model/fridge_fbx/Object_2/RootNode/Plane_004/Plane_004_Material_0/Tulanh" unique_id=33551105]
 shape = SubResource("ConcavePolygonShape3D_jbj1t")
@@ -192,7 +192,7 @@ shape = SubResource("BoxShape3D_muem4")
 [node name="Ban1" parent="KitchenBoat" unique_id=956543441 instance=ExtResource("9_85g3d")]
 transform = Transform3D(-5.2453668e-08, 0, -1.4, 0, 0.8, 0, 1.2, 0, -6.119594e-08, -0.4, 1.3, -2.5)
 
-[node name="mesh_rep_0_ori_repair" parent="KitchenBoat/Ban1" index="0" unique_id=539997294]
+[node name="mesh_rep_0_ori_repair" parent="KitchenBoat/Ban1" index="0" unique_id=1821454495]
 transform = Transform3D(-4.371139e-08, 1.2, -4.371139e-08, 0, -5.2453668e-08, -1, -1, -5.2453668e-08, 1.9106855e-15, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="KitchenBoat/Ban1/mesh_rep_0_ori_repair" index="0" unique_id=273943460]
@@ -213,33 +213,33 @@ transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0.15, 0)
 transform = Transform3D(8, 0, 0, 0, 0, -8, 0, 8, 0, 0, 0.14999998, 0)
 shape = ExtResource("2_jyhfs")
 
-[node name="GuestSpawnPoint" type="Marker3D" parent="GuestBoat"]
+[node name="GuestSpawnPoint" type="Marker3D" parent="GuestBoat" unique_id=603250532]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, -1.2)
 
-[node name="GuestJumpLanding" type="Marker3D" parent="GuestBoat"]
+[node name="GuestJumpLanding" type="Marker3D" parent="GuestBoat" unique_id=187334162]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
 
-[node name="GuestAislePoint" type="Marker3D" parent="GuestBoat"]
+[node name="GuestAislePoint" type="Marker3D" parent="GuestBoat" unique_id=880061599]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
 
-[node name="GuestSeatSlots" type="Node3D" parent="GuestBoat"]
+[node name="GuestSeatSlots" type="Node3D" parent="GuestBoat" unique_id=672006685]
 
-[node name="Seat1" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+[node name="Seat1" type="Marker3D" parent="GuestBoat/GuestSeatSlots" unique_id=698990614]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.48, -2.5)
 
-[node name="Seat2" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+[node name="Seat2" type="Marker3D" parent="GuestBoat/GuestSeatSlots" unique_id=725460096]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.48, -2.5)
 
-[node name="Seat3" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+[node name="Seat3" type="Marker3D" parent="GuestBoat/GuestSeatSlots" unique_id=810393532]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.48, 2.5)
 
-[node name="Seat4" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+[node name="Seat4" type="Marker3D" parent="GuestBoat/GuestSeatSlots" unique_id=556731529]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.48, 2.5)
 
 [node name="Ban1" parent="GuestBoat" unique_id=1192016144 instance=ExtResource("9_85g3d")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, -2.5)
 
-[node name="mesh_rep_0_ori_repair" parent="GuestBoat/Ban1" index="0" unique_id=539997294]
+[node name="mesh_rep_0_ori_repair" parent="GuestBoat/Ban1" index="0" unique_id=1821454495]
 transform = Transform3D(-4.371139e-08, 1.2, -4.371139e-08, 0, -5.2453668e-08, -1, -1, -5.2453668e-08, 1.9106855e-15, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="GuestBoat/Ban1/mesh_rep_0_ori_repair" index="0" unique_id=1004604398]
@@ -250,7 +250,7 @@ shape = SubResource("ConvexPolygonShape3D_85g3d")
 [node name="Ghe1" parent="GuestBoat" unique_id=1199213839 instance=ExtResource("7_choun")]
 transform = Transform3D(-5.828183e-09, 0, -0.16666666, 0, 0.15, 0, 0.13333328, 0, -7.2852315e-09, 0.6, 1.43, -2.5)
 
-[node name="defaultMaterial" parent="GuestBoat/Ghe1/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1199213839, 1457360812) index="0" unique_id=1469215679]
+[node name="defaultMaterial" parent="GuestBoat/Ghe1/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1199213839, 1366203952) index="0" unique_id=1978796721]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="GuestBoat/Ghe1/Sketchfab_model/Collada visual scene group/g/defaultMaterial" index="0" unique_id=719006397]
@@ -261,7 +261,7 @@ shape = SubResource("ConvexPolygonShape3D_ya4ey")
 [node name="Ghe2" parent="GuestBoat" unique_id=1911523567 instance=ExtResource("7_choun")]
 transform = Transform3D(-5.828183e-09, 0, -0.16666666, 0, 0.15, 0, 0.13333328, 0, -7.2852315e-09, -0.6, 1.43, -2.5)
 
-[node name="defaultMaterial" parent="GuestBoat/Ghe2/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1911523567, 1457360812) index="0" unique_id=1469215679]
+[node name="defaultMaterial" parent="GuestBoat/Ghe2/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1911523567, 1366203952) index="0" unique_id=1978796721]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="GuestBoat/Ghe2/Sketchfab_model/Collada visual scene group/g/defaultMaterial" index="0" unique_id=1233353179]
@@ -272,7 +272,7 @@ shape = SubResource("ConvexPolygonShape3D_ya4ey")
 [node name="Ban2" parent="GuestBoat" unique_id=1181824096 instance=ExtResource("9_85g3d")]
 transform = Transform3D(0.9999998, 0, 0, 0, 1, 0, 7.1054274e-15, 0, 0.9999999, -2.3841858e-07, 1.3, 2.5)
 
-[node name="mesh_rep_0_ori_repair" parent="GuestBoat/Ban2" index="0" unique_id=539997294]
+[node name="mesh_rep_0_ori_repair" parent="GuestBoat/Ban2" index="0" unique_id=1821454495]
 transform = Transform3D(-4.371139e-08, 1.2, -4.371139e-08, 0, -5.2453668e-08, -1, -1, -5.2453668e-08, 1.9106855e-15, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="GuestBoat/Ban2/mesh_rep_0_ori_repair" index="0" unique_id=1101936888]
@@ -283,7 +283,7 @@ shape = SubResource("ConvexPolygonShape3D_85g3d")
 [node name="Ghe3" parent="GuestBoat" unique_id=1442043933 instance=ExtResource("7_choun")]
 transform = Transform3D(-5.828183e-09, 0, -0.16666666, 0, 0.15, 0, 0.13333328, 0, -7.2852315e-09, 0.5999999, 1.43, 2.5)
 
-[node name="defaultMaterial" parent="GuestBoat/Ghe3/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1442043933, 1457360812) index="0" unique_id=1469215679]
+[node name="defaultMaterial" parent="GuestBoat/Ghe3/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1442043933, 1366203952) index="0" unique_id=1978796721]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="GuestBoat/Ghe3/Sketchfab_model/Collada visual scene group/g/defaultMaterial" index="0" unique_id=1197460783]
@@ -294,7 +294,7 @@ shape = SubResource("ConvexPolygonShape3D_ya4ey")
 [node name="Ghe4" parent="GuestBoat" unique_id=1457346502 instance=ExtResource("7_choun")]
 transform = Transform3D(-5.828183e-09, 0, -0.16666666, 0, 0.15, 0, 0.13333328, 0, -7.2852315e-09, -0.6000004, 1.43, 2.5)
 
-[node name="defaultMaterial" parent="GuestBoat/Ghe4/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1457346502, 1457360812) index="0" unique_id=1469215679]
+[node name="defaultMaterial" parent="GuestBoat/Ghe4/Sketchfab_model/Collada visual scene group/g" parent_id_path=PackedInt32Array(1457346502, 1366203952) index="0" unique_id=1978796721]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)
 
 [node name="StaticBody3D" type="StaticBody3D" parent="GuestBoat/Ghe4/Sketchfab_model/Collada visual scene group/g/defaultMaterial" index="0" unique_id=1264421547]
@@ -317,7 +317,7 @@ omni_attenuation = 1.3
 
 [node name="Nam" parent="NamChef" unique_id=1925647909 instance=ExtResource("2_0wfyh")]
 
-[node name="Skeleton3D" parent="NamChef/Nam/Armature" parent_id_path=PackedInt32Array(1925647909, 1316078198) index="0" unique_id=663005601]
+[node name="Skeleton3D" parent="NamChef/Nam/Armature" parent_id_path=PackedInt32Array(1925647909, 1713376495) index="0" unique_id=847635337]
 bones/0/position = Vector3(-0.04636167, -1.0425363, -33.737637)
 bones/0/rotation = Quaternion(-0.7380904, -0.057935767, 0.065445736, 0.66901636)
 bones/1/rotation = Quaternion(-0.030177662, 0.0018421942, -0.0066696503, 0.99952066)
@@ -356,7 +356,7 @@ transform = Transform3D(-0.4730969, 0.2037934, 0.8571156, -0.7602989, 0.39708483
 bone_name = "mixamorig_RightHandIndex1"
 bone_idx = 19
 
-[node name="AnimationPlayer" parent="NamChef/Nam" index="1" unique_id=764804757]
+[node name="AnimationPlayer" parent="NamChef/Nam" index="1" unique_id=428670458]
 libraries/ = SubResource("AnimationLibrary_pm3ni")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NamChef" unique_id=617257304]
@@ -377,10 +377,10 @@ shape = SubResource("ConcavePolygonShape3D_jkv2x")
 [node name="Ghebe" parent="Ghebe" unique_id=982413595 instance=ExtResource("12_eb6dy")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
 
-[node name="GuestSpawnPoint" type="Marker3D" parent="Ghebe"]
+[node name="GuestSpawnPoint" type="Marker3D" parent="Ghebe" unique_id=385987303]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.75, 0.55)
 
-[node name="GuestWalkPoint" type="Marker3D" parent="Ghebe"]
+[node name="GuestWalkPoint" type="Marker3D" parent="Ghebe" unique_id=62358020]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0.75, -0.85)
 
 [connection signal="body_entered" from="KitchenBoat/Tulanh/InteractArea" to="KitchenBoat/Tulanh" method="_on_interact_area_body_entered"]

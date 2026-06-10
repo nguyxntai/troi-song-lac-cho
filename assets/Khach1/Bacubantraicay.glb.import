@@ -39,7 +39,7 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={
 "animations": {
-"Armature|mixamo_com|Layer0": {
+"Actions": {
 "save_to_file/enabled": false,
 "save_to_file/fallback_path": "",
 "save_to_file/keep_custom_tracks": "",
@@ -52,7 +52,7 @@ _subresources={
 "slice_1/save_to_file/fallback_path": "res://assets/Khach1/animations/walk.res",
 "slice_1/save_to_file/keep_custom_tracks": false,
 "slice_1/save_to_file/path": "uid://d03o82usj20vt",
-"slice_1/start_frame": 0,
+"slice_1/start_frame": 1,
 "slice_10/end_frame": 0,
 "slice_10/loop_mode": 0,
 "slice_10/name": "",
