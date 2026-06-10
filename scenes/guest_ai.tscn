@@ -6,8 +6,8 @@
 radius = 0.28
 height = 1.3
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_interact"]
-radius = 1.2
+[sub_resource type="BoxShape3D" id="BoxShape3D_interact"]
+size = Vector3(0.55, 0.2, 0.55)
 
 [node name="GuestAI" type="CharacterBody3D"]
 script = ExtResource("1_guest")
@@ -19,8 +19,8 @@ shape = SubResource("CapsuleShape3D_guest")
 [node name="InteractArea" type="Area3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="InteractArea"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
-shape = SubResource("SphereShape3D_interact")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.75)
+shape = SubResource("BoxShape3D_interact")
 
 [connection signal="body_entered" from="InteractArea" to="." method="_on_interact_area_body_entered"]
 [connection signal="body_exited" from="InteractArea" to="." method="_on_interact_area_body_exited"]

@@ -23,7 +23,7 @@ const GUEST_DEFINITIONS: Array[Dictionary] = [
 @export var spawn_interval: float = 10.0
 @export var max_guests: int = 4
 @export var repeat_until_full: bool = true
-@export var spawn_slot_spacing: float = 0.85
+@export var spawn_slot_spacing: float = 0.7
 @export var spawn_point_path: NodePath = NodePath("../GuestBoat/GuestSpawnPoint")
 @export var aisle_point_path: NodePath = NodePath("../GuestBoat/GuestAislePoint")
 @export var guest_boat_path: NodePath = NodePath("../GuestBoat")
@@ -135,14 +135,9 @@ func _build_route(seat: Node3D, table: Node3D) -> Dictionary:
 
 
 func _get_spawn_position(spawn_point: Node3D, slot_index: int) -> Vector3:
-	var clean_basis: Basis = spawn_point.global_transform.basis.orthonormalized()
-	var right: Vector3 = clean_basis.x.normalized()
-	var forward: Vector3 = clean_basis.z.normalized()
-	var column: int = slot_index % 2
-	var row: int = floori(float(slot_index) / 2.0)
-	var side_offset: float = (float(column) - 0.5) * spawn_slot_spacing
-	var depth_offset: float = float(row) * spawn_slot_spacing
-	return spawn_point.global_position + right * side_offset + forward * depth_offset
+	var start_offset: float = -float(max_guests - 1) * spawn_slot_spacing * 0.5
+	var x_offset: float = start_offset + float(slot_index) * spawn_slot_spacing
+	return spawn_point.global_position + Vector3.RIGHT * x_offset
 
 
 func _get_next_spawn_slot_index() -> int:

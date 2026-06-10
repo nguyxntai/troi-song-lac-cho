@@ -14,6 +14,8 @@ enum State {
 const ANIM_IDLE: StringName = &"idle"
 const ANIM_WALK: StringName = &"walk"
 const ANIM_SIT: StringName = &"siteat"
+const INTERACT_MARKER_CENTER: Vector3 = Vector3(0.0, 0.0, 0.75)
+const INTERACT_MARKER_SIZE: Vector3 = Vector3(0.55, 0.025, 0.55)
 
 @export var move_speed: float = 1.35
 @export var rotation_speed: float = 8.0
@@ -78,7 +80,8 @@ func _process(_delta: float) -> void:
 	if _state != State.WAIT_FOR_INTERACT:
 		return
 
-	if _player_in_range and Input.is_action_just_pressed(interact_action) and _is_nearest_waiting_guest():
+	_update_interact_prompt()
+	if _player_in_range and _is_player_on_interact_marker() and Input.is_action_just_pressed(interact_action):
 		_begin_route()
 
 
@@ -106,7 +109,7 @@ func _setup_model(model_scene: PackedScene) -> void:
 
 func _setup_interact_visuals() -> void:
 	var marker_mesh: BoxMesh = BoxMesh.new()
-	marker_mesh.size = Vector3(0.55, 0.025, 0.55)
+	marker_mesh.size = INTERACT_MARKER_SIZE
 
 	var marker_material: StandardMaterial3D = StandardMaterial3D.new()
 	marker_material.albedo_color = Color(0.0, 0.55, 1.0, 0.55)
@@ -117,7 +120,7 @@ func _setup_interact_visuals() -> void:
 	_interact_marker.name = "InteractMarker"
 	_interact_marker.mesh = marker_mesh
 	_interact_marker.material_override = marker_material
-	_interact_marker.position = Vector3(0.0, 0.035, 0.75)
+	_interact_marker.position = INTERACT_MARKER_CENTER + Vector3.UP * 0.035
 	add_child(_interact_marker)
 
 	_interact_prompt = Label3D.new()
@@ -221,7 +224,7 @@ func _start_route() -> void:
 	_state = State.WAIT_FOR_INTERACT
 	_current_target = null
 	_set_waiting_visuals(true)
-	_face_nearest_table()
+	_face_positive_z()
 	_play_animation(ANIM_IDLE, 0.2)
 
 
@@ -257,8 +260,7 @@ func _on_interact_area_body_exited(body: Node3D) -> void:
 
 
 func _apply_clean_spawn_transform(spawn_point: Node3D, spawn_position: Vector3) -> void:
-	var clean_basis: Basis = spawn_point.global_transform.basis.orthonormalized()
-	var next_transform: Transform3D = Transform3D(clean_basis, spawn_position)
+	var next_transform: Transform3D = Transform3D(Basis.IDENTITY, spawn_position)
 	global_transform = next_transform
 	scale = Vector3.ONE
 
@@ -274,31 +276,23 @@ func _set_waiting_visuals(is_waiting: bool) -> void:
 
 func _update_interact_prompt() -> void:
 	if _interact_prompt:
-		_interact_prompt.visible = _state == State.WAIT_FOR_INTERACT and _player_in_range != null and _is_nearest_waiting_guest()
+		_interact_prompt.visible = _state == State.WAIT_FOR_INTERACT and _player_in_range != null and _is_player_on_interact_marker()
 
 
-func _is_nearest_waiting_guest() -> bool:
+func _face_positive_z() -> void:
+	rotation.y = 0.0
+
+
+func _is_player_on_interact_marker() -> bool:
 	if not _player_in_range:
 		return false
 
-	var parent_node: Node = get_parent()
-	if not parent_node:
-		return true
-
-	var my_distance: float = global_position.distance_squared_to(_player_in_range.global_position)
-	for sibling in parent_node.get_children():
-		var guest: GuestAI = sibling as GuestAI
-		if not guest or guest == self or guest._state != State.WAIT_FOR_INTERACT or not guest._player_in_range:
-			continue
-
-		var guest_distance: float = guest.global_position.distance_squared_to(_player_in_range.global_position)
-		var distance_difference: float = guest_distance - my_distance
-		if distance_difference < -0.0001:
-			return false
-		if absf(distance_difference) <= 0.0001 and guest.get_instance_id() < get_instance_id():
-			return false
-
-	return true
+	var local_player_position: Vector3 = to_local(_player_in_range.global_position)
+	var delta_from_marker: Vector3 = local_player_position - INTERACT_MARKER_CENTER
+	return (
+		absf(delta_from_marker.x) <= INTERACT_MARKER_SIZE.x * 0.5
+		and absf(delta_from_marker.z) <= INTERACT_MARKER_SIZE.z * 0.5
+	)
 
 
 func _process_walk(delta: float) -> void:

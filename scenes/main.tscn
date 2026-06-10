@@ -214,7 +214,7 @@ transform = Transform3D(8, 0, 0, 0, 0, -8, 0, 8, 0, 0, 0.14999998, 0)
 shape = ExtResource("2_jyhfs")
 
 [node name="GuestSpawnPoint" type="Marker3D" parent="GuestBoat" unique_id=603250532]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, -1.2)
+transform = Transform3D(0.99999976, 0, 1.4210855e-14, 0, 1, 0, 2.1316282e-14, 0, 0.99999964, 1, 1.48, -0.064)
 
 [node name="GuestJumpLanding" type="Marker3D" parent="GuestBoat" unique_id=187334162]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
