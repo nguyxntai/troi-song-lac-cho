@@ -19,6 +19,7 @@
 [ext_resource type="Animation" uid="uid://b1rgvxfhk4b52" path="res://assets/Nam/animations/jump.res" id="14_0ld40"]
 [ext_resource type="Animation" uid="uid://dt70vkltyj8b6" path="res://assets/Nam/animations/carrying walk.res" id="14_yc10j"]
 [ext_resource type="Animation" uid="uid://b3vkfivmwxyry" path="res://assets/Nam/animations/walk.res" id="15_gqmmt"]
+[ext_resource type="Script" uid="uid://cvln7dxf82ygo" path="res://scripts/guest_spawner.gd" id="16_guests"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jyhfs"]
 sky_top_color = Color(0.12, 0.42, 0.85, 1)
@@ -142,6 +143,9 @@ directional_shadow_max_distance = 60.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=362603109]
 environment = SubResource("Environment_tefeu")
 
+[node name="GuestSpawner" type="Node" parent="."]
+script = ExtResource("16_guests")
+
 [node name="River" type="MeshInstance3D" parent="." unique_id=1129790937]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12671137, 0.0043473244, 0.0082809925)
 mesh = SubResource("PlaneMesh_tbgi4")
@@ -208,6 +212,29 @@ transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0.15, 0)
 [node name="BoatCollision" type="CollisionShape3D" parent="GuestBoat" unique_id=1001234570]
 transform = Transform3D(8, 0, 0, 0, 0, -8, 0, 8, 0, 0, 0.14999998, 0)
 shape = ExtResource("2_jyhfs")
+
+[node name="GuestSpawnPoint" type="Marker3D" parent="GuestBoat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, -1.2)
+
+[node name="GuestJumpLanding" type="Marker3D" parent="GuestBoat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
+
+[node name="GuestAislePoint" type="Marker3D" parent="GuestBoat"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
+
+[node name="GuestSeatSlots" type="Node3D" parent="GuestBoat"]
+
+[node name="Seat1" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.48, -2.5)
+
+[node name="Seat2" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.48, -2.5)
+
+[node name="Seat3" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.48, 2.5)
+
+[node name="Seat4" type="Marker3D" parent="GuestBoat/GuestSeatSlots"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.48, 2.5)
 
 [node name="Ban1" parent="GuestBoat" unique_id=1192016144 instance=ExtResource("9_85g3d")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, -2.5)
@@ -349,6 +376,12 @@ shape = SubResource("ConcavePolygonShape3D_jkv2x")
 
 [node name="Ghebe" parent="Ghebe" unique_id=982413595 instance=ExtResource("12_eb6dy")]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
+
+[node name="GuestSpawnPoint" type="Marker3D" parent="Ghebe"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0.75, 0.55)
+
+[node name="GuestWalkPoint" type="Marker3D" parent="Ghebe"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0.75, -0.85)
 
 [connection signal="body_entered" from="KitchenBoat/Tulanh/InteractArea" to="KitchenBoat/Tulanh" method="_on_interact_area_body_entered"]
 
