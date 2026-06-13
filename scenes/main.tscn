@@ -20,6 +20,7 @@
 [ext_resource type="Animation" uid="uid://dt70vkltyj8b6" path="res://assets/Nam/animations/carrying walk.res" id="14_yc10j"]
 [ext_resource type="Animation" uid="uid://b3vkfivmwxyry" path="res://assets/Nam/animations/walk.res" id="15_gqmmt"]
 [ext_resource type="Script" uid="uid://cvln7dxf82ygo" path="res://scripts/guest_spawner.gd" id="16_guests"]
+[ext_resource type="Script" path="res://scripts/game_over_manager.gd" id="17_gameover"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jyhfs"]
 sky_top_color = Color(0.12, 0.42, 0.85, 1)
@@ -145,6 +146,9 @@ environment = SubResource("Environment_tefeu")
 
 [node name="GuestSpawner" type="Node" parent="." unique_id=1074906452]
 script = ExtResource("16_guests")
+
+[node name="GameOverManager" type="CanvasLayer" parent="." unique_id=1001234571]
+script = ExtResource("17_gameover")
 
 [node name="River" type="MeshInstance3D" parent="." unique_id=1129790937]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12671137, 0.0043473244, 0.0082809925)

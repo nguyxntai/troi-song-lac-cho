@@ -17,7 +17,6 @@ const ANIM_WALK: StringName = &"walk"
 const ANIM_SIT: StringName = &"siteat"
 const INTERACT_MARKER_CENTER: Vector3 = Vector3(0.0, 0.0, 0.75)
 const INTERACT_MARKER_SIZE: Vector3 = Vector3(0.55, 0.025, 0.55)
-const HOLD_RING_STEPS: int = 72
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 
 @export var move_speed: float = 1.35
@@ -27,7 +26,6 @@ const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png
 @export var jump_height: float = 0.85
 @export var food_wait_time: float = 30.0
 @export var eat_time: float = 8.0
-@export var interact_hold_time: float = 2.0
 @export var interact_action: StringName = &"interact"
 
 var _state: int = State.IDLE
@@ -47,15 +45,13 @@ var _reserved_table: Node3D
 var _player_in_range: Node3D
 var _interact_marker: MeshInstance3D
 var _interact_prompt: Sprite3D
-var _hold_ring_root: Node3D
-var _hold_ring_mesh: ImmediateMesh
 var _patience_bar_root: Node3D
 var _patience_fill: MeshInstance3D
 var _patience_material: StandardMaterial3D
 var _spawn_position: Vector3 = Vector3.ZERO
 var _food_timer: float = 0.0
 var _eat_timer: float = 0.0
-var _interact_hold_timer: float = 0.0
+var _is_pressing_interact: bool = false
 var _has_food: bool = false
 
 
@@ -105,7 +101,7 @@ func _process(_delta: float) -> void:
 		return
 
 	_update_interact_prompt()
-	if _process_hold_interaction(_delta, _can_start_guest()):
+	if _process_press_interaction(_can_start_guest()):
 		_begin_route()
 
 
@@ -150,33 +146,12 @@ func _setup_interact_visuals() -> void:
 	_interact_prompt = Sprite3D.new()
 	_interact_prompt.name = "InteractPrompt"
 	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
-	_interact_prompt.pixel_size = 0.002
+	_interact_prompt.pixel_size = 0.004
 	_interact_prompt.position = Vector3(0.0, 1.9, 0.0)
 	_interact_prompt.visible = false
 	_interact_prompt.set("billboard", 1)
 	_interact_prompt.set("no_depth_test", true)
 	add_child(_interact_prompt)
-
-	_setup_hold_ring()
-
-
-func _setup_hold_ring() -> void:
-	_hold_ring_root = MeshInstance3D.new()
-	_hold_ring_root.name = "HoldRing"
-	_hold_ring_root.position = _interact_prompt.position + Vector3(0.0, 0.0, 0.02)
-	_hold_ring_root.visible = false
-
-	var ring_material: StandardMaterial3D = StandardMaterial3D.new()
-	ring_material.albedo_color = Color(0.6, 1.0, 0.08, 0.98)
-	ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	ring_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ring_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-
-	_hold_ring_mesh = ImmediateMesh.new()
-	var ring_instance: MeshInstance3D = _hold_ring_root as MeshInstance3D
-	ring_instance.mesh = _hold_ring_mesh
-	ring_instance.material_override = ring_material
-	add_child(_hold_ring_root)
 
 
 func _setup_patience_bar() -> void:
@@ -333,7 +308,7 @@ func _on_interact_area_body_entered(body: Node3D) -> void:
 func _on_interact_area_body_exited(body: Node3D) -> void:
 	if body == _player_in_range:
 		_player_in_range = null
-		_reset_hold_interaction()
+		_reset_press_interaction()
 		_update_interact_prompt()
 
 
@@ -348,7 +323,7 @@ func _set_waiting_visuals(is_waiting: bool) -> void:
 		_interact_marker.visible = is_waiting
 	if not is_waiting and _interact_prompt:
 		_interact_prompt.visible = false
-		_reset_hold_interaction()
+		_reset_press_interaction()
 		return
 	_update_interact_prompt()
 
@@ -359,7 +334,7 @@ func _update_interact_prompt() -> void:
 		var can_serve_food: bool = _can_serve_food()
 		_interact_prompt.visible = can_start_guest or can_serve_food
 		if not _interact_prompt.visible:
-			_reset_hold_interaction()
+			_reset_press_interaction()
 
 
 func _can_start_guest() -> bool:
@@ -370,70 +345,34 @@ func _can_serve_food() -> bool:
 	return _state == State.SITTING and not _has_food and _player_in_range != null and _player_has_food() and _is_player_on_interact_marker()
 
 
-func _process_hold_interaction(delta: float, can_interact: bool) -> bool:
-	if not can_interact or not Input.is_action_pressed(interact_action):
-		_reset_hold_interaction()
+func _process_press_interaction(can_interact: bool) -> bool:
+	if not can_interact:
+		_reset_press_interaction()
 		return false
 
-	_interact_hold_timer = minf(_interact_hold_timer + delta, maxf(interact_hold_time, 0.01))
-	_update_hold_effects()
-	if _interact_hold_timer >= interact_hold_time:
-		_reset_hold_interaction()
+	if Input.is_action_just_pressed(interact_action):
+		_is_pressing_interact = true
+		_update_press_effect(true)
+
+	if _is_pressing_interact and Input.is_action_just_released(interact_action):
+		_reset_press_interaction()
 		return true
 
 	return false
 
 
-func _reset_hold_interaction() -> void:
-	if _interact_hold_timer <= 0.0 and (not _hold_ring_root or not _hold_ring_root.visible):
+func _reset_press_interaction() -> void:
+	if not _is_pressing_interact:
 		return
 
-	_interact_hold_timer = 0.0
-	_update_hold_effects()
+	_is_pressing_interact = false
+	_update_press_effect(false)
 
 
-func _update_hold_effects() -> void:
-	var ratio: float = clampf(_interact_hold_timer / maxf(interact_hold_time, 0.01), 0.0, 1.0)
+func _update_press_effect(is_pressed: bool) -> void:
 	if _interact_prompt:
-		var prompt_scale: float = lerpf(1.0, 0.82, ratio)
-		_interact_prompt.scale = Vector3.ONE * prompt_scale
-
-	if _hold_ring_root:
-		_hold_ring_root.visible = ratio > 0.0
-
-	_update_hold_ring_mesh(ratio)
-
-
-func _update_hold_ring_mesh(ratio: float) -> void:
-	if not _hold_ring_mesh:
-		return
-
-	_hold_ring_mesh.clear_surfaces()
-	if ratio <= 0.0:
-		return
-
-	var inner_radius: float = 0.34
-	var outer_radius: float = 0.42
-	var angle_length: float = TAU * clampf(ratio, 0.0, 1.0)
-	var step_count: int = max(1, ceili(float(HOLD_RING_STEPS) * ratio))
-
-	_hold_ring_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	for index in range(step_count):
-		var angle_a: float = angle_length * float(index) / float(step_count)
-		var angle_b: float = angle_length * float(index + 1) / float(step_count)
-		var inner_a: Vector3 = Vector3(cos(angle_a) * inner_radius, sin(angle_a) * inner_radius, 0.0)
-		var outer_a: Vector3 = Vector3(cos(angle_a) * outer_radius, sin(angle_a) * outer_radius, 0.0)
-		var inner_b: Vector3 = Vector3(cos(angle_b) * inner_radius, sin(angle_b) * inner_radius, 0.0)
-		var outer_b: Vector3 = Vector3(cos(angle_b) * outer_radius, sin(angle_b) * outer_radius, 0.0)
-
-		_hold_ring_mesh.surface_add_vertex(inner_a)
-		_hold_ring_mesh.surface_add_vertex(outer_a)
-		_hold_ring_mesh.surface_add_vertex(outer_b)
-		_hold_ring_mesh.surface_add_vertex(inner_a)
-		_hold_ring_mesh.surface_add_vertex(outer_b)
-		_hold_ring_mesh.surface_add_vertex(inner_b)
-
-	_hold_ring_mesh.surface_end()
+		_interact_prompt.scale = Vector3.ONE * (0.86 if is_pressed else 1.0)
+		_interact_prompt.position = Vector3(0.0, 1.82 if is_pressed else 1.9, 0.0)
 
 
 func _face_positive_z() -> void:
@@ -541,7 +480,7 @@ func _process_food_wait(delta: float) -> void:
 		return
 
 	_update_interact_prompt()
-	if _process_hold_interaction(delta, _can_serve_food()):
+	if _process_press_interaction(_can_serve_food()):
 		_consume_player_food()
 		serve_food()
 		return
@@ -596,7 +535,16 @@ func _update_patience_bar() -> void:
 
 func _player_has_food() -> bool:
 	var hand_slot: Node = _get_player_hand_slot()
-	return hand_slot != null and hand_slot.get_child_count() > 0
+	if hand_slot == null or hand_slot.get_child_count() == 0:
+		return false
+
+	var held_item: Node = hand_slot.get_child(0)
+	if held_item.has_meta("is_servable_food"):
+		return bool(held_item.get_meta("is_servable_food"))
+	if held_item.has_meta("food_stage"):
+		return int(held_item.get_meta("food_stage")) == 2
+
+	return true
 
 
 func _consume_player_food() -> void:
