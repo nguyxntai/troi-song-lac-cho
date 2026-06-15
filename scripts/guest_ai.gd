@@ -17,7 +17,20 @@ const ANIM_WALK: StringName = &"walk"
 const ANIM_SIT: StringName = &"siteat"
 const INTERACT_MARKER_CENTER: Vector3 = Vector3(0.0, 0.0, 0.75)
 const INTERACT_MARKER_SIZE: Vector3 = Vector3(0.55, 0.025, 0.55)
+const SERVE_MARKER_SIZE: Vector3 = Vector3(0.64, 0.025, 0.64)
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
+const FOOD_ID_META := "food_id"
+const SERVABLE_FOOD_META := "is_servable_food"
+const ORDER_OPTIONS: Array[Dictionary] = [
+	{
+		"id": "bo_kho",
+		"name": "To bo kho",
+	},
+	{
+		"id": "nuoc_ngot",
+		"name": "Lon nuoc ngot",
+	},
+]
 
 @export var move_speed: float = 1.35
 @export var rotation_speed: float = 8.0
@@ -27,6 +40,12 @@ const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png
 @export var food_wait_time: float = 30.0
 @export var eat_time: float = 8.0
 @export var interact_action: StringName = &"interact"
+@export var order_options: Array[Dictionary] = ORDER_OPTIONS
+@export var served_food_table_offset: Vector3 = Vector3(0.0, 0.42, 0.0)
+@export_range(0.0, 1.0, 0.01) var served_food_guest_side_offset: float = 0.28
+@export var served_food_rotation: Vector3 = Vector3.ZERO
+@export var serve_marker_side_offset: float = 1.05
+@export var serve_marker_forward_offset: float = 0.0
 
 var _state: int = State.IDLE
 var _anim_player: AnimationPlayer
@@ -48,11 +67,16 @@ var _interact_prompt: Sprite3D
 var _patience_bar_root: Node3D
 var _patience_fill: MeshInstance3D
 var _patience_material: StandardMaterial3D
+var _order_label: Label3D
+var _feedback_label: Label3D
 var _spawn_position: Vector3 = Vector3.ZERO
 var _food_timer: float = 0.0
 var _eat_timer: float = 0.0
 var _is_pressing_interact: bool = false
 var _has_food: bool = false
+var _current_order_id: String = ""
+var _current_order_name: String = ""
+var _served_food_visual: Node3D
 
 
 func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) -> void:
@@ -78,6 +102,7 @@ func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) 
 	_setup_model(model_scene)
 	_setup_interact_visuals()
 	_setup_patience_bar()
+	_setup_order_visuals()
 	_apply_animations(animations)
 	_start_route()
 
@@ -187,6 +212,28 @@ func _setup_patience_bar() -> void:
 	_patience_fill.mesh = fill_mesh
 	_patience_fill.material_override = _patience_material
 	_patience_bar_root.add_child(_patience_fill)
+
+
+func _setup_order_visuals() -> void:
+	_order_label = _create_overhead_label("OrderLabel", Vector3(0.0, 2.38, 0.0), 32)
+	_order_label.visible = false
+
+	_feedback_label = _create_overhead_label("OrderFeedbackLabel", Vector3(0.0, 2.68, 0.0), 76)
+	_feedback_label.visible = false
+
+
+func _create_overhead_label(label_name: String, label_position: Vector3, font_size: int) -> Label3D:
+	var label: Label3D = Label3D.new()
+	label.name = label_name
+	label.position = label_position
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.font_size = font_size
+	label.modulate = Color.WHITE
+	label.outline_modulate = Color(0.08, 0.04, 0.02, 1.0)
+	label.outline_size = 10
+	add_child(label)
+	return label
 
 
 func _apply_animations(animations: Dictionary) -> void:
@@ -332,17 +379,18 @@ func _update_interact_prompt() -> void:
 	if _interact_prompt:
 		var can_start_guest: bool = _can_start_guest()
 		var can_serve_food: bool = _can_serve_food()
+		_update_interact_marker_transform()
 		_interact_prompt.visible = can_start_guest or can_serve_food
 		if not _interact_prompt.visible:
 			_reset_press_interaction()
 
 
 func _can_start_guest() -> bool:
-	return _state == State.WAIT_FOR_INTERACT and _player_in_range != null and _is_player_on_interact_marker()
+	return _state == State.WAIT_FOR_INTERACT and _get_interaction_player() != null and _is_player_on_interact_marker()
 
 
 func _can_serve_food() -> bool:
-	return _state == State.SITTING and not _has_food and _player_in_range != null and _player_has_food() and _is_player_on_interact_marker()
+	return _state == State.SITTING and not _has_food and _get_interaction_player() != null and _player_has_any_food() and _is_player_on_interact_marker()
 
 
 func _process_press_interaction(can_interact: bool) -> bool:
@@ -372,7 +420,7 @@ func _reset_press_interaction() -> void:
 func _update_press_effect(is_pressed: bool) -> void:
 	if _interact_prompt:
 		_interact_prompt.scale = Vector3.ONE * (0.86 if is_pressed else 1.0)
-		_interact_prompt.position = Vector3(0.0, 1.82 if is_pressed else 1.9, 0.0)
+		_interact_prompt.position = _get_interact_prompt_position(is_pressed)
 
 
 func _face_positive_z() -> void:
@@ -380,14 +428,17 @@ func _face_positive_z() -> void:
 
 
 func _is_player_on_interact_marker() -> bool:
-	if not _player_in_range:
+	var interaction_player: Node3D = _get_interaction_player()
+	if not interaction_player:
 		return false
 
-	var local_player_position: Vector3 = to_local(_player_in_range.global_position)
-	var delta_from_marker: Vector3 = local_player_position - INTERACT_MARKER_CENTER
+	var local_player_position: Vector3 = to_local(interaction_player.global_position)
+	var marker_center: Vector3 = _get_current_interact_marker_center()
+	var marker_size: Vector3 = _get_current_interact_marker_size()
+	var delta_from_marker: Vector3 = local_player_position - marker_center
 	return (
-		absf(delta_from_marker.x) <= INTERACT_MARKER_SIZE.x * 0.5
-		and absf(delta_from_marker.z) <= INTERACT_MARKER_SIZE.z * 0.5
+		absf(delta_from_marker.x) <= marker_size.x * 0.5
+		and absf(delta_from_marker.z) <= marker_size.z * 0.5
 	)
 
 
@@ -450,6 +501,7 @@ func _sit_down() -> void:
 		position = _get_local_target_position(_seat_point)
 
 	_face_nearest_table()
+	_choose_order()
 	_start_food_wait()
 
 	_play_animation(ANIM_SIT, 0.1)
@@ -462,6 +514,8 @@ func serve_food() -> void:
 	_has_food = true
 	_eat_timer = maxf(eat_time, 0.1)
 	_set_patience_bar_visible(false)
+	_set_order_label_visible(false)
+	_set_serving_visuals(false)
 	_update_interact_prompt()
 
 
@@ -470,6 +524,7 @@ func _start_food_wait() -> void:
 	_food_timer = maxf(food_wait_time, 0.1)
 	_update_patience_bar()
 	_set_patience_bar_visible(true)
+	_set_serving_visuals(true)
 
 
 func _process_food_wait(delta: float) -> void:
@@ -481,8 +536,13 @@ func _process_food_wait(delta: float) -> void:
 
 	_update_interact_prompt()
 	if _process_press_interaction(_can_serve_food()):
-		_consume_player_food()
-		serve_food()
+		if _player_has_ordered_food():
+			_place_player_food_on_table()
+			_show_order_feedback(true)
+			serve_food()
+		else:
+			_show_order_feedback(false)
+			_leave_wrong_food()
 		return
 
 	_food_timer = maxf(_food_timer - delta, 0.0)
@@ -499,11 +559,18 @@ func _leave_without_food() -> void:
 	_begin_leave()
 
 
+func _leave_wrong_food() -> void:
+	_begin_leave()
+
+
 func _begin_leave() -> void:
 	_state = State.LEAVING
 	_current_target = null
 	_set_waiting_visuals(false)
 	_set_patience_bar_visible(false)
+	_set_order_label_visible(false)
+	_set_serving_visuals(false)
+	_clear_served_food_visual()
 	_play_animation(ANIM_WALK)
 
 
@@ -523,6 +590,68 @@ func _set_patience_bar_visible(is_visible: bool) -> void:
 		_patience_bar_root.visible = is_visible
 
 
+func _set_serving_visuals(is_visible: bool) -> void:
+	if _interact_marker:
+		_update_interact_marker_transform()
+		_interact_marker.visible = is_visible
+	if not is_visible and _interact_prompt:
+		_interact_prompt.visible = false
+		_reset_press_interaction()
+
+
+func _update_interact_marker_transform() -> void:
+	if not _interact_marker:
+		return
+
+	var marker_center: Vector3 = _get_current_interact_marker_center()
+	var marker_size: Vector3 = _get_current_interact_marker_size()
+	var marker_mesh: BoxMesh = _interact_marker.mesh as BoxMesh
+	if marker_mesh:
+		marker_mesh.size = marker_size
+	_interact_marker.position = marker_center + Vector3.UP * 0.035
+	if _interact_prompt:
+		_interact_prompt.position = _get_interact_prompt_position(_is_pressing_interact)
+
+
+func _get_interact_prompt_position(is_pressed: bool = false) -> Vector3:
+	var marker_center: Vector3 = _get_current_interact_marker_center()
+	var prompt_height: float = 1.82 if is_pressed else 1.9
+	return marker_center + Vector3(0.0, prompt_height, 0.0)
+
+
+func _get_current_interact_marker_center() -> Vector3:
+	if _state == State.SITTING:
+		return _get_serve_marker_center()
+
+	return INTERACT_MARKER_CENTER
+
+
+func _get_current_interact_marker_size() -> Vector3:
+	if _state == State.SITTING:
+		return SERVE_MARKER_SIZE
+
+	return INTERACT_MARKER_SIZE
+
+
+func _get_serve_marker_center() -> Vector3:
+	var table: Node3D = _get_serving_table()
+	if not table or not _seat_point or not is_instance_valid(_seat_point):
+		return INTERACT_MARKER_CENTER
+
+	var local_table_position: Vector3 = to_local(table.global_position)
+	var table_to_seat: Vector3 = to_local(_seat_point.global_position) - local_table_position
+	table_to_seat.y = 0.0
+	if table_to_seat.length_squared() < 0.0001:
+		return INTERACT_MARKER_CENTER
+
+	var forward_to_guest: Vector3 = table_to_seat.normalized()
+	var side_direction: Vector3 = Vector3(forward_to_guest.z, 0.0, -forward_to_guest.x)
+	if _seat_point.global_position.x < table.global_position.x:
+		side_direction *= -1.0
+
+	return local_table_position + side_direction * serve_marker_side_offset + forward_to_guest * serve_marker_forward_offset
+
+
 func _update_patience_bar() -> void:
 	if not _patience_fill or not _patience_material:
 		return
@@ -533,38 +662,152 @@ func _update_patience_bar() -> void:
 	_patience_material.albedo_color = Color.RED.lerp(Color.GREEN, ratio)
 
 
-func _player_has_food() -> bool:
+func _choose_order() -> void:
+	var options: Array[Dictionary] = order_options
+	if options.is_empty():
+		options = ORDER_OPTIONS
+
+	var order: Dictionary = options[randi_range(0, options.size() - 1)]
+	_current_order_id = String(order.get("id", "bo_kho"))
+	_current_order_name = String(order.get("name", _current_order_id))
+	if _order_label:
+		_order_label.text = _current_order_name
+		_order_label.visible = true
+
+
+func _set_order_label_visible(is_visible: bool) -> void:
+	if _order_label:
+		_order_label.visible = is_visible
+
+
+func _show_order_feedback(is_correct: bool) -> void:
+	if not _feedback_label:
+		return
+
+	_feedback_label.text = "A" if is_correct else "X"
+	_feedback_label.modulate = Color(0.3, 1.0, 0.2, 1.0) if is_correct else Color(1.0, 0.12, 0.08, 1.0)
+	_feedback_label.visible = true
+
+
+func _player_has_any_food() -> bool:
 	var hand_slot: Node = _get_player_hand_slot()
 	if hand_slot == null or hand_slot.get_child_count() == 0:
 		return false
 
 	var held_item: Node = hand_slot.get_child(0)
-	if held_item.has_meta("is_servable_food"):
-		return bool(held_item.get_meta("is_servable_food"))
+	if held_item.has_meta(SERVABLE_FOOD_META):
+		return bool(held_item.get_meta(SERVABLE_FOOD_META))
 	if held_item.has_meta("food_stage"):
 		return int(held_item.get_meta("food_stage")) == 2
 
 	return true
 
 
-func _consume_player_food() -> void:
+func _player_has_ordered_food() -> bool:
+	var hand_slot: Node = _get_player_hand_slot()
+	if hand_slot == null or hand_slot.get_child_count() == 0:
+		return false
+
+	var held_item: Node = hand_slot.get_child(0)
+	if not _player_has_any_food():
+		return false
+	if not held_item.has_meta(FOOD_ID_META):
+		return false
+
+	return String(held_item.get_meta(FOOD_ID_META)) == _current_order_id
+
+
+func _place_player_food_on_table() -> void:
 	var hand_slot: Node = _get_player_hand_slot()
 	if not hand_slot or hand_slot.get_child_count() == 0:
 		return
 
-	hand_slot.get_child(0).queue_free()
+	var held_item: Node = hand_slot.get_child(0)
+	var visual_node: Node3D = null
+	if held_item.has_meta("carry_visual"):
+		var visual_variant: Variant = held_item.get_meta("carry_visual")
+		if visual_variant is Node3D:
+			visual_node = visual_variant as Node3D
+	elif held_item is Node3D:
+		visual_node = held_item as Node3D
+
+	if visual_node and is_instance_valid(visual_node):
+		_move_food_visual_to_table(visual_node)
+
+	if held_item != visual_node:
+		held_item.queue_free()
+
+
+func _move_food_visual_to_table(food_visual: Node3D) -> void:
+	var table: Node3D = _get_serving_table()
+	if not table:
+		food_visual.queue_free()
+		return
+
+	var old_parent: Node = food_visual.get_parent()
+	if old_parent:
+		old_parent.remove_child(food_visual)
+
+	table.add_child(food_visual)
+	food_visual.position = _get_served_food_table_position(table)
+	food_visual.rotation_degrees = served_food_rotation
+	_served_food_visual = food_visual
+
+
+func _get_served_food_table_position(table: Node3D) -> Vector3:
+	var table_position: Vector3 = served_food_table_offset
+	if not _seat_point or not is_instance_valid(_seat_point):
+		return table_position
+
+	var local_seat_position: Vector3 = table.to_local(_seat_point.global_position)
+	var seat_direction: Vector3 = Vector3(local_seat_position.x, 0.0, local_seat_position.z)
+	if seat_direction.length_squared() < 0.0001:
+		return table_position
+
+	seat_direction = seat_direction.normalized() * served_food_guest_side_offset
+	return table_position + seat_direction
+
+
+func _get_serving_table() -> Node3D:
+	if _reserved_table and is_instance_valid(_reserved_table):
+		return _reserved_table
+
+	return _find_nearest_table_to_seat()
+
+
+func _clear_served_food_visual() -> void:
+	if _served_food_visual and is_instance_valid(_served_food_visual):
+		_served_food_visual.queue_free()
+	_served_food_visual = null
 
 
 func _get_player_hand_slot() -> Node:
-	if not _player_in_range:
+	var interaction_player: Node3D = _get_interaction_player()
+	if not interaction_player:
 		return null
 
-	return _player_in_range.find_child("HandSlot", true, false)
+	return interaction_player.find_child("HandSlot", true, false)
+
+
+func _get_interaction_player() -> Node3D:
+	if _state == State.SITTING:
+		return get_tree().current_scene.find_child("NamChef", true, false) as Node3D
+
+	return _player_in_range
 
 
 func _face_nearest_table() -> void:
 	if not _seat_point:
 		return
+
+	var nearest_table: Node3D = _find_nearest_table_to_seat()
+	if nearest_table:
+		_face_local_position(_get_local_target_position(nearest_table))
+
+
+func _find_nearest_table_to_seat() -> Node3D:
+	if not _seat_point:
+		return null
 
 	var nearest_table: Node3D
 	var best_distance: float = INF
@@ -577,8 +820,7 @@ func _face_nearest_table() -> void:
 			best_distance = distance
 			nearest_table = table_node
 
-	if nearest_table:
-		_face_local_position(_get_local_target_position(nearest_table))
+	return nearest_table
 
 
 func _get_local_target_position(target: Node3D) -> Vector3:
