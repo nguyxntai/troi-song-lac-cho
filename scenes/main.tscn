@@ -24,6 +24,8 @@
 [ext_resource type="Script" uid="uid://cvln7dxf82ygo" path="res://scripts/guest_spawner.gd" id="16_guests"]
 [ext_resource type="Script" uid="uid://bhq71wus1lqj6" path="res://scripts/game_over_manager.gd" id="17_gameover"]
 [ext_resource type="Script" uid="uid://dx44qmq3qqyql" path="res://scripts/stove_flame_effect.gd" id="18_flame"]
+[ext_resource type="Script" path="res://scripts/food_station.gd" id="19_foodstation"]
+[ext_resource type="PackedScene" path="res://assets/DoAn/ToBoKho.glb" id="20_tobokho"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jyhfs"]
 sky_top_color = Color(0.12, 0.42, 0.85, 1)
@@ -257,6 +259,21 @@ transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0.32794228, 2.0129097, 
 [node name="ToRongBan2_Stack6_06" parent="KitchenBoat" unique_id=1196663471 instance=ExtResource("10_torong")]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0.32794228, 2.0679097, 3.0990734)
 
+[node name="ToRongStation" type="Node3D" parent="KitchenBoat" unique_id=1001234572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.02, 1.48, 2.45)
+script = ExtResource("19_foodstation")
+station_mode = 0
+result_scene = ExtResource("10_torong")
+result_local_position = Vector3(0, 0, 0)
+result_local_rotation = Vector3(0, 90, 0)
+result_local_scale = Vector3(0.22, 0.22, 0.22)
+stock_capacity = 7
+stock_remaining = 7
+show_stock_counter = true
+marker_size = Vector2(0.72, 0.72)
+prompt_offset = Vector3(0, 1.35, 0.15)
+stock_label_offset = Vector3(0.0, 1.15, 0.68)
+
 [node name="BepGa" parent="KitchenBoat" unique_id=1702351589 instance=ExtResource("10_bepga")]
 transform = Transform3D(-7.8680495e-10, 0, 0.018, 0, 0.018, 0, -0.018, 0, -7.8680495e-10, -0.47373775, 1.82, -2.4781344)
 
@@ -266,6 +283,17 @@ script = ExtResource("18_flame")
 
 [node name="NoiBoKho" parent="KitchenBoat/BepGa" unique_id=1433497112 instance=ExtResource("10_noibokho")]
 transform = Transform3D(-1.6998877e-06, 0, -38.888885, 0, 38.888885, 0, 38.888885, 0, -1.6998877e-06, -0.0074768066, 7.2222214, 1.5409851)
+
+[node name="NoiBoKhoStation" type="Node3D" parent="KitchenBoat" unique_id=1001234573]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.47, 1.48, -1.95)
+script = ExtResource("19_foodstation")
+station_mode = 3
+result_scene = ExtResource("20_tobokho")
+result_local_position = Vector3(0, 0, 0)
+result_local_rotation = Vector3(0, 90, 0)
+result_local_scale = Vector3(0.22, 0.22, 0.22)
+marker_size = Vector2(0.72, 0.72)
+prompt_offset = Vector3(0, 1.35, 0)
 
 [node name="GuestBoat" type="AnimatableBody3D" parent="." unique_id=754735627]
 transform = Transform3D(-5.2453668e-08, 0, 1.5, 0, 1, 0, -1.2, 0, -6.556708e-08, 1, -1, -4.5)
