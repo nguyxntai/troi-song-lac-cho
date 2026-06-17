@@ -18,7 +18,7 @@ const STAGE_EMPTY_BOWL := 0
 const STAGE_BOWL_WITH_NOODLES := 1
 const STAGE_FULL_BOWL := 2
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
-const INTERACT_MARKER_COLOR: Color = Color(0.0, 0.72, 1.0, 0.68)
+const INTERACT_MARKER_COLOR: Color = Color(0.0, 0.72, 1.0, 0.0)
 
 @export var station_mode: StationMode = StationMode.TAKE_EMPTY_BOWL
 @export var result_scene: PackedScene

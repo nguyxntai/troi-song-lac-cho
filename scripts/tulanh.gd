@@ -5,55 +5,52 @@ const SERVABLE_FOOD_META := "is_servable_food"
 const CARRY_VISUAL_META := "carry_visual"
 const CARRY_SOCKET_NAME := "CarrySocket"
 const DRINK_FOOD_ID := "nuoc_ngot"
+const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 
 @export var xa_xi_scene: PackedScene
 @export var xa_xi_local_position: Vector3 = Vector3.ZERO
 @export var xa_xi_local_rotation: Vector3 = Vector3(0.0, 90.0, 0.0)
 @export var xa_xi_local_scale: Vector3 = Vector3(0.08, 0.08, 0.08)
+@export var interact_action: StringName = &"interact"
+@export var prompt_offset: Vector3 = Vector3(0.0, 1.35, 0.0)
+@export_range(0.2, 3.0, 0.05) var interact_distance: float = 1.1
 
 var player_in_range: Node3D = null
-var hold_time: float = 0.0
-var required_hold_time: float = 1.5
-var is_holding: bool = false
+var _interact_prompt: Sprite3D
 
 
-func _process(delta: float) -> void:
-	if player_in_range and Input.is_key_pressed(KEY_E):
-		is_holding = true
-		hold_time += delta
-		print("Dang mo tu lanh... ", int((hold_time / required_hold_time) * 100), "%")
+func _ready() -> void:
+	_setup_interact_prompt()
 
-		if hold_time >= required_hold_time:
-			spawn_xa_xi_to_hand()
-			hold_time = 0.0
-			is_holding = false
-	else:
-		if is_holding:
-			hold_time = 0.0
-			is_holding = false
-			print("Da buong phim E, huy mo tu lanh.")
+
+func _process(_delta: float) -> void:
+	_update_interact_prompt()
+	var player: Node3D = _get_player_in_interact_distance()
+	if not player or not _can_take_drink(player):
+		return
+
+	if Input.is_action_just_pressed(interact_action):
+		spawn_xa_xi_to_hand(player)
 
 
 func _on_interact_area_body_entered(body: Node3D) -> void:
 	if body.name == "NamChef":
 		player_in_range = body
-		print("NamChef da den gan tu lanh. Hay giu phim E de lay nuoc!")
+		_update_interact_prompt()
 
 
 func _on_interact_area_body_exited(body: Node3D) -> void:
 	if body == player_in_range:
 		player_in_range = null
-		hold_time = 0.0
-		is_holding = false
-		print("NamChef da di xa khoi tu lanh.")
+		_update_interact_prompt()
 
 
-func spawn_xa_xi_to_hand() -> void:
+func spawn_xa_xi_to_hand(player: Node3D) -> void:
 	if not xa_xi_scene:
 		print("Loi: Chua gan scene lon_xa_xi.tscn cho Tu Lanh.")
 		return
 
-	var hand_slot: Node = player_in_range.find_child("HandSlot", true, false)
+	var hand_slot: Node = player.find_child("HandSlot", true, false)
 	if not hand_slot:
 		print("Loi: Khong tim thay HandSlot tren NamChef.")
 		return
@@ -83,6 +80,55 @@ func spawn_xa_xi_to_hand() -> void:
 	carry_parent.add_child(lon_moi)
 	holder.set_meta(CARRY_VISUAL_META, lon_moi)
 	print("Thanh cong! Lon xa xi da xuat hien tren tay NamChef.")
+
+
+func _setup_interact_prompt() -> void:
+	_interact_prompt = Sprite3D.new()
+	_interact_prompt.name = "InteractPrompt"
+	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
+	_interact_prompt.pixel_size = 0.0035
+	_interact_prompt.position = prompt_offset
+	_interact_prompt.visible = false
+	_interact_prompt.set("billboard", 1)
+	_interact_prompt.set("no_depth_test", true)
+	add_child(_interact_prompt)
+
+
+func _update_interact_prompt() -> void:
+	if _interact_prompt:
+		var player: Node3D = _get_player_in_interact_distance()
+		_interact_prompt.visible = player != null and _can_take_drink(player)
+
+
+func _can_take_drink(player: Node3D) -> bool:
+	if not player:
+		return false
+
+	var hand_slot: Node = player.find_child("HandSlot", true, false)
+	return hand_slot != null and hand_slot.get_child_count() == 0
+
+
+func _get_player_in_interact_distance() -> Node3D:
+	if not player_in_range or not is_instance_valid(player_in_range):
+		return null
+
+	var flat_delta: Vector3 = player_in_range.global_position - _get_interact_anchor_position()
+	flat_delta.y = 0.0
+	if flat_delta.length_squared() > interact_distance * interact_distance:
+		return null
+
+	return player_in_range
+
+
+func _get_interact_anchor_position() -> Vector3:
+	var interact_area: Node3D = get_node_or_null("InteractArea") as Node3D
+	if interact_area:
+		var collision_shape: Node3D = interact_area.get_node_or_null("CollisionShape3D") as Node3D
+		if collision_shape:
+			return collision_shape.global_position
+		return interact_area.global_position
+
+	return global_position
 
 
 func _find_carry_visual_parent(hand_slot: Node) -> Node:

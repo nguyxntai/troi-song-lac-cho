@@ -157,7 +157,7 @@ func _setup_interact_visuals() -> void:
 	marker_mesh.size = INTERACT_MARKER_SIZE
 
 	var marker_material: StandardMaterial3D = StandardMaterial3D.new()
-	marker_material.albedo_color = Color(0.0, 0.55, 1.0, 0.55)
+	marker_material.albedo_color = Color(0.0, 0.55, 1.0, 0.0)
 	marker_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	marker_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
