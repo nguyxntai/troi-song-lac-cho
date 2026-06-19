@@ -19,6 +19,8 @@ const STAGE_BOWL_WITH_NOODLES := 1
 const STAGE_FULL_BOWL := 2
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 const INTERACT_MARKER_COLOR: Color = Color(0.0, 0.72, 1.0, 0.0)
+const EFFECT_EMPTY_BOWL: Texture2D = preload("res://assets/UI/to_rong_effect.png")
+const EFFECT_BOKHO: Texture2D = preload("res://assets/UI/bokho_effect.png")
 
 @export var station_mode: StationMode = StationMode.TAKE_EMPTY_BOWL
 @export var result_scene: PackedScene
@@ -93,7 +95,25 @@ func _take_empty_bowl(hand_slot: Node) -> bool:
 	_spawn_food_item(hand_slot, STAGE_EMPTY_BOWL)
 	stock_remaining = maxi(stock_remaining - 1, 0)
 	_update_station_visuals()
+	_spawn_effect(EFFECT_EMPTY_BOWL)
 	return true
+
+
+func _spawn_effect(tex: Texture2D) -> void:
+	if not _player:
+		return
+	var sprite := Sprite3D.new()
+	sprite.texture = tex
+	sprite.pixel_size = 0.0015
+	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sprite.no_depth_test = true
+	get_tree().current_scene.add_child(sprite)
+	sprite.global_position = _player.global_position + Vector3(0, 2.2, 0)
+	
+	var tween := create_tween()
+	tween.tween_property(sprite, "global_position:y", sprite.global_position.y + 0.8, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_callback(sprite.queue_free)
 
 
 func _upgrade_held_food(hand_slot: Node, required_stage: int, result_stage: int) -> bool:
@@ -111,6 +131,10 @@ func _upgrade_held_food(hand_slot: Node, required_stage: int, result_stage: int)
 	held_item.queue_free()
 	_spawn_food_item(hand_slot, result_stage)
 	_update_station_visuals()
+	
+	if result_stage == STAGE_FULL_BOWL:
+		_spawn_effect(EFFECT_BOKHO)
+		
 	return true
 
 
@@ -221,7 +245,7 @@ func _setup_interact_visuals() -> void:
 	_interact_prompt = Sprite3D.new()
 	_interact_prompt.name = "InteractPrompt"
 	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
-	_interact_prompt.pixel_size = 0.0035
+	_interact_prompt.pixel_size = 0.0006
 	_interact_prompt.position = prompt_offset
 	_interact_prompt.set("billboard", 1)
 	_interact_prompt.set("no_depth_test", true)

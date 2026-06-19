@@ -11,7 +11,8 @@ const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
 @export var credits_button_path: NodePath = ^"MenuUI/MenuButtons/CreditsButton"
 @export var exit_button_path: NodePath = ^"MenuUI/MenuButtons/ExitButton"
 @export var menu_buttons_path: NodePath = ^"MenuUI/MenuButtons"
-@export_file("*.tscn") var gameplay_scene_path: String = "res://scenes/chapter1.tscn"
+@export_file("*.tscn") var gameplay_scene_path: String = "res://scenes/comic_intro.tscn"
+@export_file("*.tscn") var direct_gameplay_scene_path: String = "res://scenes/chapter1.tscn"
 @export var intro_duration: float = 4.2
 @export var menu_fade_duration: float = 0.8
 @export_range(0.5, 1.2, 0.05) var button_idle_scale: float = 0.8
@@ -255,6 +256,11 @@ func _enable_menu_buttons() -> void:
 func _on_play_pressed() -> void:
 	if _is_loading_gameplay:
 		return
+
+	if PauseMenu.has_played_intro:
+		gameplay_scene_path = direct_gameplay_scene_path
+	else:
+		PauseMenu.has_played_intro = true
 
 	_is_loading_gameplay = true
 	_set_menu_buttons_disabled(true)

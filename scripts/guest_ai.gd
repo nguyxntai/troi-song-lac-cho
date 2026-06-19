@@ -19,6 +19,10 @@ const INTERACT_MARKER_CENTER: Vector3 = Vector3(0.0, 0.0, 0.75)
 const INTERACT_MARKER_SIZE: Vector3 = Vector3(0.55, 0.025, 0.55)
 const SERVE_MARKER_SIZE: Vector3 = Vector3(0.64, 0.025, 0.64)
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
+const EMOJI_SATISFIED: Texture2D = preload("res://assets/satisfied_emoji.png")
+const EMOJI_ANGRY: Texture2D = preload("res://assets/angry_emoji.png")
+const EFFECT_BOKHO: Texture2D = preload("res://assets/UI/bokho_effect.png")
+const EFFECT_SAXI: Texture2D = preload("res://assets/UI/saxi_effect.png")
 const FOOD_ID_META := "food_id"
 const SERVABLE_FOOD_META := "is_servable_food"
 const TABLE_POSITION_META := "table_local_position"
@@ -71,7 +75,8 @@ var _patience_bar_root: Node3D
 var _patience_fill: MeshInstance3D
 var _patience_material: StandardMaterial3D
 var _order_label: Label3D
-var _feedback_label: Label3D
+var _order_sprite: Sprite3D
+var _feedback_sprite: Sprite3D
 var _spawn_position: Vector3 = Vector3.ZERO
 var _food_timer: float = 0.0
 var _eat_timer: float = 0.0
@@ -174,7 +179,7 @@ func _setup_interact_visuals() -> void:
 	_interact_prompt = Sprite3D.new()
 	_interact_prompt.name = "InteractPrompt"
 	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
-	_interact_prompt.pixel_size = 0.004
+	_interact_prompt.pixel_size = 0.0007
 	_interact_prompt.position = Vector3(0.0, 1.9, 0.0)
 	_interact_prompt.visible = false
 	_interact_prompt.set("billboard", 1)
@@ -221,8 +226,23 @@ func _setup_order_visuals() -> void:
 	_order_label = _create_overhead_label("OrderLabel", Vector3(0.0, 2.38, 0.0), 32)
 	_order_label.visible = false
 
-	_feedback_label = _create_overhead_label("OrderFeedbackLabel", Vector3(0.0, 2.68, 0.0), 76)
-	_feedback_label.visible = false
+	_order_sprite = Sprite3D.new()
+	_order_sprite.name = "OrderSprite"
+	_order_sprite.position = Vector3(0.0, 2.85, 0.0)
+	_order_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_order_sprite.no_depth_test = true
+	_order_sprite.pixel_size = 0.0006
+	_order_sprite.visible = false
+	add_child(_order_sprite)
+
+	_feedback_sprite = Sprite3D.new()
+	_feedback_sprite.name = "OrderFeedbackSprite"
+	_feedback_sprite.position = Vector3(0.0, 2.68, 0.0)
+	_feedback_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_feedback_sprite.no_depth_test = true
+	_feedback_sprite.pixel_size = 0.0012
+	_feedback_sprite.visible = false
+	add_child(_feedback_sprite)
 
 
 func _create_overhead_label(label_name: String, label_position: Vector3, font_size: int) -> Label3D:
@@ -654,6 +674,13 @@ func _get_serve_marker_center() -> Vector3:
 	if _seat_point.global_position.x < table.global_position.x:
 		side_direction *= -1.0
 
+	# Ban2 interaction area should be on the left (global -X) so the player doesn't have to jump the table.
+	if table.name == "Ban2":
+		var desired_global_dir = Vector3(-1.0, 0.0, 0.0)
+		var local_desired_dir = to_local(table.global_position + desired_global_dir) - local_table_position
+		if side_direction.dot(local_desired_dir) < 0.0:
+			side_direction *= -1.0
+
 	return local_table_position + side_direction * serve_marker_side_offset + forward_to_guest * serve_marker_forward_offset
 
 
@@ -675,23 +702,32 @@ func _choose_order() -> void:
 	var order: Dictionary = options[randi_range(0, options.size() - 1)]
 	_current_order_id = String(order.get("id", "bo_kho"))
 	_current_order_name = String(order.get("name", _current_order_id))
+	
+	if _current_order_id == "bo_kho" and _order_sprite:
+		_order_sprite.texture = EFFECT_BOKHO
+	elif _current_order_id == "nuoc_ngot" and _order_sprite:
+		_order_sprite.texture = EFFECT_SAXI
+	
 	if _order_label:
 		_order_label.text = _current_order_name
 		_order_label.visible = true
+	if _order_sprite:
+		_order_sprite.visible = true
 
 
 func _set_order_label_visible(is_visible: bool) -> void:
 	if _order_label:
 		_order_label.visible = is_visible
+	if _order_sprite:
+		_order_sprite.visible = is_visible
 
 
 func _show_order_feedback(is_correct: bool) -> void:
-	if not _feedback_label:
+	if not _feedback_sprite:
 		return
 
-	_feedback_label.text = "A" if is_correct else "X"
-	_feedback_label.modulate = Color(0.3, 1.0, 0.2, 1.0) if is_correct else Color(1.0, 0.12, 0.08, 1.0)
-	_feedback_label.visible = true
+	_feedback_sprite.texture = EMOJI_SATISFIED if is_correct else EMOJI_ANGRY
+	_feedback_sprite.visible = true
 
 
 func _player_has_any_food() -> bool:

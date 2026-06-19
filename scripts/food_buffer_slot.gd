@@ -185,7 +185,7 @@ func _setup_visuals() -> void:
 	_interact_prompt = Sprite3D.new()
 	_interact_prompt.name = "InteractPrompt"
 	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
-	_interact_prompt.pixel_size = 0.0035
+	_interact_prompt.pixel_size = 0.0006
 	_interact_prompt.position = prompt_offset
 	_interact_prompt.set("billboard", 1)
 	_interact_prompt.set("no_depth_test", true)

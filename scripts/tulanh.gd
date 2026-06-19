@@ -9,6 +9,7 @@ const TABLE_SCALE_META := "table_local_scale"
 const CARRY_SOCKET_NAME := "CarrySocket"
 const DRINK_FOOD_ID := "nuoc_ngot"
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
+const EFFECT_SAXI: Texture2D = preload("res://assets/UI/saxi_effect.png")
 
 @export var xa_xi_scene: PackedScene
 @export var xa_xi_local_position: Vector3 = Vector3(0.0, 0.1, 0.12)
@@ -91,6 +92,22 @@ func spawn_xa_xi_to_hand(player: Node3D) -> void:
 	carry_parent.add_child(lon_moi)
 	holder.set_meta(CARRY_VISUAL_META, lon_moi)
 	print("Thanh cong! Lon xa xi da xuat hien tren tay NamChef.")
+	_spawn_effect(EFFECT_SAXI, player)
+
+
+func _spawn_effect(tex: Texture2D, player: Node3D) -> void:
+	var sprite := Sprite3D.new()
+	sprite.texture = tex
+	sprite.pixel_size = 0.0015
+	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sprite.no_depth_test = true
+	get_tree().current_scene.add_child(sprite)
+	sprite.global_position = player.global_position + Vector3(0, 2.2, 0)
+	
+	var tween := create_tween()
+	tween.tween_property(sprite, "global_position:y", sprite.global_position.y + 0.8, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_callback(sprite.queue_free)
 
 
 func _apply_drink_carry_transform(drink_visual: Node3D) -> void:
@@ -112,7 +129,7 @@ func _setup_interact_prompt() -> void:
 	_interact_prompt = Sprite3D.new()
 	_interact_prompt.name = "InteractPrompt"
 	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
-	_interact_prompt.pixel_size = 0.0035
+	_interact_prompt.pixel_size = 0.0006
 	_interact_prompt.position = prompt_offset
 	_interact_prompt.visible = false
 	_interact_prompt.set("billboard", 1)
