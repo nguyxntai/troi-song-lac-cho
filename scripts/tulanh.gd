@@ -3,14 +3,20 @@ extends Node3D
 const FOOD_ID_META := "food_id"
 const SERVABLE_FOOD_META := "is_servable_food"
 const CARRY_VISUAL_META := "carry_visual"
+const TABLE_POSITION_META := "table_local_position"
+const TABLE_ROTATION_META := "table_local_rotation"
+const TABLE_SCALE_META := "table_local_scale"
 const CARRY_SOCKET_NAME := "CarrySocket"
 const DRINK_FOOD_ID := "nuoc_ngot"
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 
 @export var xa_xi_scene: PackedScene
-@export var xa_xi_local_position: Vector3 = Vector3.ZERO
+@export var xa_xi_local_position: Vector3 = Vector3(0.0, 0.1, 0.12)
 @export var xa_xi_local_rotation: Vector3 = Vector3(0.0, 90.0, 0.0)
-@export var xa_xi_local_scale: Vector3 = Vector3(0.08, 0.08, 0.08)
+@export var xa_xi_local_scale: Vector3 = Vector3(0.32, 0.32, 0.32)
+@export var xa_xi_table_local_position: Vector3 = Vector3.ZERO
+@export var xa_xi_table_local_rotation: Vector3 = Vector3(0.0, 90.0, 0.0)
+@export var xa_xi_table_local_scale: Vector3 = Vector3(0.32, 0.32, 0.32)
 @export var interact_action: StringName = &"interact"
 @export var prompt_offset: Vector3 = Vector3(0.0, 1.35, 0.0)
 @export_range(0.2, 3.0, 0.05) var interact_distance: float = 1.1
@@ -63,23 +69,43 @@ func spawn_xa_xi_to_hand(player: Node3D) -> void:
 	holder.name = "LonXaXiHolder"
 	holder.set_meta(FOOD_ID_META, DRINK_FOOD_ID)
 	holder.set_meta(SERVABLE_FOOD_META, true)
+	holder.set_meta(TABLE_POSITION_META, xa_xi_table_local_position)
+	holder.set_meta(TABLE_ROTATION_META, xa_xi_table_local_rotation)
+	holder.set_meta(TABLE_SCALE_META, xa_xi_table_local_scale)
 	hand_slot.add_child(holder)
 
 	var lon_moi: Node = xa_xi_scene.instantiate()
 	lon_moi.set_meta(FOOD_ID_META, DRINK_FOOD_ID)
 	lon_moi.set_meta(SERVABLE_FOOD_META, true)
+	lon_moi.set_meta(TABLE_POSITION_META, xa_xi_table_local_position)
+	lon_moi.set_meta(TABLE_ROTATION_META, xa_xi_table_local_rotation)
+	lon_moi.set_meta(TABLE_SCALE_META, xa_xi_table_local_scale)
 
 	if lon_moi is Node3D:
 		var lon_3d: Node3D = lon_moi as Node3D
-		lon_3d.position = xa_xi_local_position
-		lon_3d.rotation_degrees = xa_xi_local_rotation
-		lon_3d.scale = xa_xi_local_scale
+		_apply_drink_carry_transform(lon_3d)
 		_disable_food_visual_physics(lon_3d)
+		_force_visual_visible(lon_3d)
 
 	var carry_parent: Node = _find_carry_visual_parent(hand_slot)
 	carry_parent.add_child(lon_moi)
 	holder.set_meta(CARRY_VISUAL_META, lon_moi)
 	print("Thanh cong! Lon xa xi da xuat hien tren tay NamChef.")
+
+
+func _apply_drink_carry_transform(drink_visual: Node3D) -> void:
+	drink_visual.position = xa_xi_local_position
+	drink_visual.rotation_degrees = xa_xi_local_rotation
+	drink_visual.scale = xa_xi_local_scale
+	drink_visual.visible = true
+
+
+func _force_visual_visible(node: Node) -> void:
+	if node is Node3D:
+		(node as Node3D).visible = true
+
+	for child in node.get_children():
+		_force_visual_visible(child)
 
 
 func _setup_interact_prompt() -> void:

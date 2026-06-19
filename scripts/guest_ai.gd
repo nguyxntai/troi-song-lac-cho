@@ -21,6 +21,9 @@ const SERVE_MARKER_SIZE: Vector3 = Vector3(0.64, 0.025, 0.64)
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 const FOOD_ID_META := "food_id"
 const SERVABLE_FOOD_META := "is_servable_food"
+const TABLE_POSITION_META := "table_local_position"
+const TABLE_ROTATION_META := "table_local_rotation"
+const TABLE_SCALE_META := "table_local_scale"
 const ORDER_OPTIONS: Array[Dictionary] = [
 	{
 		"id": "bo_kho",
@@ -541,6 +544,7 @@ func _process_food_wait(delta: float) -> void:
 			_show_order_feedback(true)
 			serve_food()
 		else:
+			get_tree().call_group("day_manager", "register_wrong_order", self)
 			_show_order_feedback(false)
 			_leave_wrong_food()
 		return
@@ -552,6 +556,7 @@ func _process_food_wait(delta: float) -> void:
 
 
 func _leave_after_eating() -> void:
+	get_tree().call_group("day_manager", "register_served_guest", self)
 	_begin_leave()
 
 
@@ -751,7 +756,28 @@ func _move_food_visual_to_table(food_visual: Node3D) -> void:
 	table.add_child(food_visual)
 	food_visual.position = _get_served_food_table_position(table)
 	food_visual.rotation_degrees = served_food_rotation
+	_apply_food_table_transform_overrides(food_visual)
 	_served_food_visual = food_visual
+
+
+func _apply_food_table_transform_overrides(food_visual: Node3D) -> void:
+	if food_visual.has_meta(TABLE_POSITION_META):
+		var table_position_variant: Variant = food_visual.get_meta(TABLE_POSITION_META)
+		if table_position_variant is Vector3:
+			var table_position_offset: Vector3 = table_position_variant as Vector3
+			food_visual.position += table_position_offset
+
+	if food_visual.has_meta(TABLE_ROTATION_META):
+		var table_rotation_variant: Variant = food_visual.get_meta(TABLE_ROTATION_META)
+		if table_rotation_variant is Vector3:
+			var table_rotation: Vector3 = table_rotation_variant as Vector3
+			food_visual.rotation_degrees = table_rotation
+
+	if food_visual.has_meta(TABLE_SCALE_META):
+		var table_scale_variant: Variant = food_visual.get_meta(TABLE_SCALE_META)
+		if table_scale_variant is Vector3:
+			var table_scale: Vector3 = table_scale_variant as Vector3
+			food_visual.scale = table_scale
 
 
 func _get_served_food_table_position(table: Node3D) -> Vector3:

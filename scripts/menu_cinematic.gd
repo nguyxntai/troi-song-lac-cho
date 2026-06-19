@@ -1,5 +1,7 @@
 extends Node3D
 
+const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
+
 @export var camera_path: NodePath = ^"MainCamera"
 @export var nam_chef_path: NodePath = ^"NamChef"
 @export var animation_player_path: NodePath = ^"NamChef/Nam/AnimationPlayer"
@@ -29,6 +31,9 @@ var _intro_tween: Tween
 var _button_paths: Array[NodePath] = []
 var _button_tweens: Dictionary = {}
 var _button_base_sizes: Dictionary = {}
+var _is_loading_gameplay := false
+var _loading_canvas: CanvasLayer
+var _loading_ring: Control
 
 func _ready() -> void:
 	_camera = get_node_or_null(camera_path) as Camera3D
@@ -53,6 +58,8 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_look_at_nam_chef()
+	if _is_loading_gameplay:
+		_poll_gameplay_load()
 
 
 func _prepare_nam_chef() -> void:
@@ -236,6 +243,9 @@ func _show_menu_buttons() -> void:
 
 
 func _enable_menu_buttons() -> void:
+	if _is_loading_gameplay:
+		return
+
 	for button_path in _button_paths:
 		var button := get_node_or_null(button_path) as BaseButton
 		if button != null:
@@ -243,7 +253,98 @@ func _enable_menu_buttons() -> void:
 
 
 func _on_play_pressed() -> void:
-	get_tree().change_scene_to_file(gameplay_scene_path)
+	if _is_loading_gameplay:
+		return
+
+	_is_loading_gameplay = true
+	_set_menu_buttons_disabled(true)
+	_show_loading_ring(0.0)
+
+	var error: int = ResourceLoader.load_threaded_request(gameplay_scene_path)
+	if error != OK:
+		push_error("Cannot start threaded loading for %s. Error: %s" % [gameplay_scene_path, error])
+		_is_loading_gameplay = false
+		_hide_loading_ring()
+		_set_menu_buttons_disabled(false)
+
+
+func _poll_gameplay_load() -> void:
+	var progress: Array = []
+	var status: int = ResourceLoader.load_threaded_get_status(gameplay_scene_path, progress)
+
+	if not progress.is_empty():
+		_show_loading_ring(float(progress[0]))
+
+	match status:
+		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			return
+		ResourceLoader.THREAD_LOAD_LOADED:
+			var scene_resource: Resource = ResourceLoader.load_threaded_get(gameplay_scene_path) as Resource
+			var packed_scene := scene_resource as PackedScene
+			if packed_scene == null:
+				push_error("Loaded gameplay resource is not a PackedScene: %s" % gameplay_scene_path)
+				_is_loading_gameplay = false
+				_hide_loading_ring()
+				_set_menu_buttons_disabled(false)
+				return
+
+			var error: int = get_tree().change_scene_to_packed(packed_scene)
+			if error != OK:
+				push_error("Cannot change to gameplay scene %s. Error: %s" % [gameplay_scene_path, error])
+				_is_loading_gameplay = false
+				_hide_loading_ring()
+				_set_menu_buttons_disabled(false)
+		ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			push_error("Failed to load gameplay scene: %s" % gameplay_scene_path)
+			_is_loading_gameplay = false
+			_hide_loading_ring()
+			_set_menu_buttons_disabled(false)
+
+
+func _set_menu_buttons_disabled(is_disabled: bool) -> void:
+	for button_path in _button_paths:
+		var button := get_node_or_null(button_path) as BaseButton
+		if button != null:
+			button.disabled = is_disabled
+
+
+func _show_loading_ring(progress: float) -> void:
+	_ensure_loading_ring()
+	if _loading_canvas == null or _loading_ring == null:
+		return
+
+	_loading_ring.call("set_progress", progress)
+	_loading_canvas.visible = true
+
+
+func _hide_loading_ring() -> void:
+	if _loading_canvas != null:
+		_loading_canvas.visible = false
+
+
+func _ensure_loading_ring() -> void:
+	if _loading_canvas != null and _loading_ring != null:
+		return
+
+	_loading_canvas = CanvasLayer.new()
+	_loading_canvas.name = "LoadingCanvas"
+	_loading_canvas.layer = 50
+	add_child(_loading_canvas)
+
+	var ring := LOADING_RING_SCRIPT.new() as Control
+	ring.name = "LoadingRing"
+	ring.anchor_left = 1.0
+	ring.anchor_top = 1.0
+	ring.anchor_right = 1.0
+	ring.anchor_bottom = 1.0
+	ring.offset_left = -78.0
+	ring.offset_top = -78.0
+	ring.offset_right = -24.0
+	ring.offset_bottom = -24.0
+	_loading_canvas.add_child(ring)
+
+	_loading_ring = ring
+	_loading_canvas.visible = false
 
 
 func _on_settings_pressed() -> void:

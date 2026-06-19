@@ -5,6 +5,7 @@ const GAME_OVER_TEXTURE: Texture2D = preload("res://assets/UI/game_over.png")
 
 const REASON_FELL_IN_RIVER := "fell_in_river"
 const REASON_NOT_ENOUGH_CUSTOMERS := "not_enough_customers"
+const REASON_TOO_MANY_WRONG_ORDERS := "too_many_wrong_orders"
 const REASON_CUSTOM := "custom"
 
 const GAME_OVER_REASONS := {
@@ -15,6 +16,10 @@ const GAME_OVER_REASONS := {
 	REASON_NOT_ENOUGH_CUSTOMERS: {
 		"title": "Không đủ khách",
 		"description": "Không phục vụ đủ số lượng khách yêu cầu."
+	},
+	REASON_TOO_MANY_WRONG_ORDERS: {
+		"title": "Sai món quá nhiều",
+		"description": "Đưa sai món quá số lượt cho phép."
 	},
 	REASON_CUSTOM: {
 		"title": "Thua cuộc",
@@ -27,10 +32,14 @@ const GAME_OVER_REASONS := {
 @export var watch_player_fall: bool = true
 @export var restart_action: StringName = &"ui_accept"
 @export_file("*.tscn") var menu_scene_path: String = ""
+@export_file("*.png") var win_texture_path: String = "res://assets/UI/win.png"
 
 var _player: Node3D
 var _is_game_over := false
 var _reason_label: Label
+var _image_area: Control
+var _result_image: TextureRect
+var _win_label: Label
 
 
 func _ready() -> void:
@@ -65,7 +74,19 @@ func show_custom_game_over(title: String, description: String) -> void:
 		return
 
 	_is_game_over = true
+	_set_result_visuals(false)
 	_reason_label.text = "Lý do: %s\n%s" % [title, description]
+	visible = true
+	get_tree().paused = true
+
+
+func show_win(description: String = "") -> void:
+	if _is_game_over:
+		return
+
+	_is_game_over = true
+	_set_result_visuals(true)
+	_reason_label.text = description
 	visible = true
 	get_tree().paused = true
 
@@ -112,6 +133,7 @@ func _build_ui() -> void:
 	image_area.name = "GameOverImageArea"
 	image_area.custom_minimum_size = Vector2(621.0, 402.0)
 	content.add_child(image_area)
+	_image_area = image_area
 
 	var image := TextureRect.new()
 	image.name = "GameOverImage"
@@ -121,6 +143,7 @@ func _build_ui() -> void:
 	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	image_area.add_child(image)
+	_result_image = image
 
 	var reload_icon_button := _create_icon_button(Vector2(165.0, 205.0), Vector2(150.0, 150.0))
 	reload_icon_button.name = "ReloadIconButton"
@@ -131,6 +154,17 @@ func _build_ui() -> void:
 	home_icon_button.name = "HomeIconButton"
 	home_icon_button.pressed.connect(go_to_menu)
 	image_area.add_child(home_icon_button)
+
+	_win_label = Label.new()
+	_win_label.name = "WinLabel"
+	_win_label.text = "HOÀN THÀNH!"
+	_win_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_win_label.add_theme_font_size_override("font_size", 76)
+	_win_label.add_theme_color_override("font_color", Color(0.35, 1.0, 0.25, 1.0))
+	_win_label.add_theme_color_override("font_outline_color", Color(0.02, 0.2, 0.04, 1.0))
+	_win_label.add_theme_constant_override("outline_size", 12)
+	_win_label.visible = false
+	content.add_child(_win_label)
 
 	_reason_label = Label.new()
 	_reason_label.name = "ReasonLabel"
@@ -162,8 +196,30 @@ func _make_empty_style() -> StyleBoxFlat:
 
 
 func _update_reason_label(reason_key: String, custom_description: String) -> void:
+	_set_result_visuals(false)
 	var reason: Dictionary = GAME_OVER_REASONS.get(reason_key, GAME_OVER_REASONS[REASON_CUSTOM])
 	var title: String = str(reason.get("title", "Thua cuộc"))
 	var default_description: String = str(reason.get("description", "Nhiệm vụ thất bại."))
 	var description: String = custom_description if not custom_description.is_empty() else default_description
 	_reason_label.text = "Lý do: %s\n%s" % [title, description]
+
+
+func _set_result_visuals(is_win: bool) -> void:
+	var texture := _get_result_texture(is_win)
+	if _result_image:
+		_result_image.texture = texture
+	if _image_area:
+		_image_area.visible = not is_win or texture != null
+	if _win_label:
+		_win_label.visible = is_win and texture == null
+
+
+func _get_result_texture(is_win: bool) -> Texture2D:
+	if not is_win:
+		return GAME_OVER_TEXTURE
+
+	if not win_texture_path.is_empty() and ResourceLoader.exists(win_texture_path):
+		var texture_resource: Resource = load(win_texture_path) as Resource
+		return texture_resource as Texture2D
+
+	return null
