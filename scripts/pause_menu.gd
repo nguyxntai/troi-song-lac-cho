@@ -101,15 +101,12 @@ func _relayout() -> void:
 	_bg_rect.size = final_bg_size
 	_bg_rect.position = (vp_size - final_bg_size) * 0.5
 	
-	# Layout buttons container inside background
-	# The buttons should go exactly where the empty space is in the background.
-	# From the image, the empty scroll space is roughly the center-right.
-	# We'll just center the VBoxContainer with a slight offset.
-	_button_container.size = Vector2(final_bg_size.x * 0.6, final_bg_size.y * 0.6)
-	_button_container.position = Vector2(final_bg_size.x * 0.25, final_bg_size.y * 0.25)
+	# Place buttons in the blank paper area of the background.
+	_button_container.size = Vector2(final_bg_size.x * 0.52, final_bg_size.y * 0.52)
+	_button_container.position = Vector2(final_bg_size.x * 0.24, final_bg_size.y * 0.33)
 	
 	# Size buttons relative to container
-	var btn_height := final_bg_size.y * 0.11
+	var btn_height := final_bg_size.y * 0.095
 	for btn in _button_container.get_children():
 		var t_btn := btn as TextureButton
 		if not t_btn: continue
@@ -118,6 +115,8 @@ func _relayout() -> void:
 			aspect = t_btn.texture_normal.get_size().x / t_btn.texture_normal.get_size().y
 		
 		t_btn.custom_minimum_size = Vector2(btn_height * aspect, btn_height)
+		t_btn.size = t_btn.custom_minimum_size
+		t_btn.scale = Vector2.ONE
 		t_btn.pivot_offset = t_btn.custom_minimum_size * 0.5
 
 

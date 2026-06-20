@@ -353,11 +353,12 @@ func _relayout() -> void:
 	
 	var win_content := win_bg.get_node("WinContent") as Control
 	
-	win_content.size = Vector2(final_bg_size.x * 0.6, final_bg_size.y * 0.6)
-	win_content.position = Vector2(final_bg_size.x * 0.2, final_bg_size.y * 0.25)
+	win_content.size = Vector2(final_bg_size.x * 0.56, final_bg_size.y * 0.56)
+	win_content.position = Vector2(final_bg_size.x * 0.22, final_bg_size.y * 0.30)
+	_win_reason_label.custom_minimum_size = Vector2(win_content.size.x, final_bg_size.y * 0.13)
 	
 	var btn_container := win_content.get_child(1) as Container
-	var btn_height := final_bg_size.y * 0.12
+	var btn_height := final_bg_size.y * 0.095
 	for btn in btn_container.get_children():
 		var t_btn := btn as TextureButton
 		if not t_btn: continue
@@ -366,4 +367,6 @@ func _relayout() -> void:
 			aspect = t_btn.texture_normal.get_size().x / t_btn.texture_normal.get_size().y
 		
 		t_btn.custom_minimum_size = Vector2(btn_height * aspect, btn_height)
+		t_btn.size = t_btn.custom_minimum_size
+		t_btn.scale = Vector2.ONE
 		t_btn.pivot_offset = t_btn.custom_minimum_size * 0.5
