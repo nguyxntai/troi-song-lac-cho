@@ -6,6 +6,9 @@ const WIN_BG_TEXTURE: Texture2D = preload("res://assets/UI/win_menu/WinUI.png")
 const WIN_BTN_REPLAY: Texture2D = preload("res://assets/UI/win_menu/ReplayLevel.png")
 const WIN_BTN_CONTINUE: Texture2D = preload("res://assets/UI/win_menu/Continue.png")
 const WIN_BTN_HOME: Texture2D = preload("res://assets/UI/win_menu/Home.png")
+const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
+
+const CHAPTER_MUSIC_NODE_NAME := "Chapter1Music"
 
 const REASON_FELL_IN_RIVER := "fell_in_river"
 const REASON_NOT_ENOUGH_CUSTOMERS := "not_enough_customers"
@@ -53,6 +56,10 @@ var _win_reason_label: Label
 var _dim_bg: ColorRect
 
 var _dev_popup_panel: Control
+var _loading_panel: Control
+var _loading_ring: Control
+var _is_reloading_scene := false
+var _reload_scene_path := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -63,7 +70,12 @@ func _ready() -> void:
 	_relayout()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _is_reloading_scene:
+		_update_loading_ring(delta)
+		_poll_replay_load()
+		return
+
 	if _is_game_over:
 		if Input.is_action_just_pressed(restart_action):
 			restart_current_scene()
@@ -87,6 +99,7 @@ func show_game_over(reason_key: String = REASON_CUSTOM, custom_description: Stri
 	var description: String = custom_description if not custom_description.is_empty() else default_description
 	_go_reason_label.text = "Lý do: %s\n%s" % [title, description]
 	
+	_stop_chapter_music()
 	visible = true
 	get_tree().paused = true
 
@@ -99,6 +112,7 @@ func show_custom_game_over(title: String, description: String) -> void:
 	_game_over_panel.visible = true
 	_win_panel.visible = false
 	_go_reason_label.text = "Lý do: %s\n%s" % [title, description]
+	_stop_chapter_music()
 	visible = true
 	get_tree().paused = true
 
@@ -113,19 +127,102 @@ func show_win(description: String = "") -> void:
 	
 	_win_reason_label.text = description
 	
+	_stop_chapter_music()
 	visible = true
 	get_tree().paused = true
 
 
 func restart_current_scene() -> void:
-	get_tree().paused = false
-	get_tree().reload_current_scene()
+	if _is_reloading_scene:
+		return
+
+	_reload_scene_path = ""
+	var current_scene := get_tree().current_scene
+	if current_scene != null:
+		_reload_scene_path = current_scene.scene_file_path
+
+	_show_replay_loading()
+	_stop_chapter_music()
+
+	if _reload_scene_path.is_empty():
+		get_tree().paused = false
+		get_tree().reload_current_scene()
+		return
+
+	_is_reloading_scene = true
+	var error: int = ResourceLoader.load_threaded_request(_reload_scene_path)
+	if error != OK:
+		push_error("Cannot start threaded reload for %s. Error: %s" % [_reload_scene_path, error])
+		_finish_replay_load_with_fallback()
 
 
 func go_to_menu() -> void:
 	var path := menu_scene_path if not menu_scene_path.is_empty() else "res://scenes/menu.scn"
+	_stop_chapter_music()
 	get_tree().paused = false
 	get_tree().change_scene_to_file(path)
+
+
+func _poll_replay_load() -> void:
+	var progress: Array = []
+	var status: int = ResourceLoader.load_threaded_get_status(_reload_scene_path, progress)
+
+	if not progress.is_empty() and _loading_ring != null:
+		_loading_ring.call("set_progress", maxf(float(progress[0]), 0.18))
+
+	match status:
+		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			return
+		ResourceLoader.THREAD_LOAD_LOADED:
+			var scene_resource: Resource = ResourceLoader.load_threaded_get(_reload_scene_path) as Resource
+			var packed_scene := scene_resource as PackedScene
+			if packed_scene == null:
+				_finish_replay_load_with_fallback()
+				return
+
+			get_tree().paused = false
+			_is_reloading_scene = false
+			var error: int = get_tree().change_scene_to_packed(packed_scene)
+			if error != OK:
+				push_error("Cannot reload scene %s. Error: %s" % [_reload_scene_path, error])
+				_finish_replay_load_with_fallback()
+		ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			push_error("Failed to threaded reload scene: %s" % _reload_scene_path)
+			_finish_replay_load_with_fallback()
+
+
+func _finish_replay_load_with_fallback() -> void:
+	_is_reloading_scene = false
+	_hide_replay_loading()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
+func _show_replay_loading() -> void:
+	_ensure_loading_panel()
+	if _loading_panel == null:
+		return
+
+	_loading_panel.visible = true
+	_loading_panel.move_to_front()
+	if _dev_popup_panel:
+		_dev_popup_panel.visible = false
+	if _loading_ring != null:
+		_loading_ring.rotation = 0.0
+		_loading_ring.call("set_progress", 0.18)
+
+
+func _hide_replay_loading() -> void:
+	if _loading_panel != null:
+		_loading_panel.visible = false
+
+
+func _update_loading_ring(delta: float) -> void:
+	if _loading_ring == null or not _loading_ring.visible:
+		return
+
+	_loading_ring.pivot_offset = _loading_ring.size * 0.5
+	_loading_ring.rotation += delta * TAU * 0.85
 
 
 func _on_continue_pressed() -> void:
@@ -133,7 +230,7 @@ func _on_continue_pressed() -> void:
 
 
 func _on_replay_pressed() -> void:
-	_show_dev_popup()
+	restart_current_scene()
 
 
 func _show_dev_popup() -> void:
@@ -144,6 +241,53 @@ func _show_dev_popup() -> void:
 func _close_dev_popup() -> void:
 	if _dev_popup_panel:
 		_dev_popup_panel.visible = false
+
+
+func _ensure_loading_panel() -> void:
+	if _loading_panel != null and _loading_ring != null:
+		return
+
+	_loading_panel = Control.new()
+	_loading_panel.name = "ReplayLoadingPanel"
+	_loading_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	_loading_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_loading_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_loading_panel.visible = false
+	add_child(_loading_panel)
+
+	var loading_dim := ColorRect.new()
+	loading_dim.name = "ReplayLoadingDim"
+	loading_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	loading_dim.color = Color(0.0, 0.0, 0.0, 0.68)
+	_loading_panel.add_child(loading_dim)
+
+	var center_container := CenterContainer.new()
+	center_container.name = "ReplayLoadingCenter"
+	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_loading_panel.add_child(center_container)
+
+	_loading_ring = LOADING_RING_SCRIPT.new() as Control
+	_loading_ring.name = "ReplayLoadingRing"
+	_loading_ring.set("ring_size", 82.0)
+	_loading_ring.set("ring_width", 9.0)
+	_loading_ring.set("fill_color", Color(1.0, 0.58, 0.16, 1.0))
+	_loading_ring.set("back_color", Color(1.0, 0.96, 0.86, 0.92))
+	center_container.add_child(_loading_ring)
+
+
+func _get_chapter_music() -> AudioStreamPlayer:
+	var root := get_tree().current_scene
+	if root == null:
+		return null
+
+	return root.find_child(CHAPTER_MUSIC_NODE_NAME, true, false) as AudioStreamPlayer
+
+
+func _stop_chapter_music() -> void:
+	var music := _get_chapter_music()
+	if music != null:
+		music.stop()
 
 
 func _build_ui() -> void:

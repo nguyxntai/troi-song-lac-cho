@@ -31,11 +31,9 @@ const TABLE_SCALE_META := "table_local_scale"
 const ORDER_OPTIONS: Array[Dictionary] = [
 	{
 		"id": "bo_kho",
-		"name": "To bo kho",
 	},
 	{
 		"id": "nuoc_ngot",
-		"name": "Lon nuoc ngot",
 	},
 ]
 
@@ -74,7 +72,6 @@ var _interact_prompt: Sprite3D
 var _patience_bar_root: Node3D
 var _patience_fill: MeshInstance3D
 var _patience_material: StandardMaterial3D
-var _order_label: Label3D
 var _order_sprite: Sprite3D
 var _feedback_sprite: Sprite3D
 var _spawn_position: Vector3 = Vector3.ZERO
@@ -83,7 +80,6 @@ var _eat_timer: float = 0.0
 var _is_pressing_interact: bool = false
 var _has_food: bool = false
 var _current_order_id: String = ""
-var _current_order_name: String = ""
 var _served_food_visual: Node3D
 
 
@@ -223,12 +219,9 @@ func _setup_patience_bar() -> void:
 
 
 func _setup_order_visuals() -> void:
-	_order_label = _create_overhead_label("OrderLabel", Vector3(0.0, 2.38, 0.0), 32)
-	_order_label.visible = false
-
 	_order_sprite = Sprite3D.new()
 	_order_sprite.name = "OrderSprite"
-	_order_sprite.position = Vector3(0.0, 2.85, 0.0)
+	_order_sprite.position = Vector3(0.0, 2.65, 0.0)
 	_order_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_order_sprite.no_depth_test = true
 	_order_sprite.pixel_size = 0.0006
@@ -243,20 +236,6 @@ func _setup_order_visuals() -> void:
 	_feedback_sprite.pixel_size = 0.0012
 	_feedback_sprite.visible = false
 	add_child(_feedback_sprite)
-
-
-func _create_overhead_label(label_name: String, label_position: Vector3, font_size: int) -> Label3D:
-	var label: Label3D = Label3D.new()
-	label.name = label_name
-	label.position = label_position
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.font_size = font_size
-	label.modulate = Color.WHITE
-	label.outline_modulate = Color(0.08, 0.04, 0.02, 1.0)
-	label.outline_size = 10
-	add_child(label)
-	return label
 
 
 func _apply_animations(animations: Dictionary) -> void:
@@ -537,7 +516,7 @@ func serve_food() -> void:
 	_has_food = true
 	_eat_timer = maxf(eat_time, 0.1)
 	_set_patience_bar_visible(false)
-	_set_order_label_visible(false)
+	_set_order_visuals_visible(false)
 	_set_serving_visuals(false)
 	_update_interact_prompt()
 
@@ -593,7 +572,7 @@ func _begin_leave() -> void:
 	_current_target = null
 	_set_waiting_visuals(false)
 	_set_patience_bar_visible(false)
-	_set_order_label_visible(false)
+	_set_order_visuals_visible(false)
 	_set_serving_visuals(false)
 	_clear_served_food_visual()
 	_play_animation(ANIM_WALK)
@@ -701,23 +680,17 @@ func _choose_order() -> void:
 
 	var order: Dictionary = options[randi_range(0, options.size() - 1)]
 	_current_order_id = String(order.get("id", "bo_kho"))
-	_current_order_name = String(order.get("name", _current_order_id))
 	
 	if _current_order_id == "bo_kho" and _order_sprite:
 		_order_sprite.texture = EFFECT_BOKHO
 	elif _current_order_id == "nuoc_ngot" and _order_sprite:
 		_order_sprite.texture = EFFECT_SAXI
-	
-	if _order_label:
-		_order_label.text = _current_order_name
-		_order_label.visible = true
+
 	if _order_sprite:
 		_order_sprite.visible = true
 
 
-func _set_order_label_visible(is_visible: bool) -> void:
-	if _order_label:
-		_order_label.visible = is_visible
+func _set_order_visuals_visible(is_visible: bool) -> void:
 	if _order_sprite:
 		_order_sprite.visible = is_visible
 
