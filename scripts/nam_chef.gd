@@ -25,6 +25,11 @@ const ANIM_CARRY_JUMP: StringName = &"carrying jump generated"
 
 var _root_bone_pose_position: Vector3 = Vector3.ZERO
 
+
+func _exit_tree() -> void:
+	AudioManager.stop_player_walking()
+
+
 func _ready() -> void:
 	# ==========================================
 	# CẤU HÌNH TRIỆT TIÊU LỖI NẢY THÀNH TÀU & QUÁN TÍNH
@@ -65,6 +70,7 @@ func _physics_process(delta: float) -> void:
 	var direction := Vector3(input_dir.x, 0, input_dir.y).normalized()
 	var is_carrying: bool = _is_carrying_item()
 	var current_move_speed: float = MOVE_SPEED * (CARRY_MOVE_SPEED_MULTIPLIER if is_carrying else 1.0)
+	AudioManager.set_player_walking(direction != Vector3.ZERO and is_on_floor())
 	
 	# Xử lý vận tốc di chuyển và xoay hướng mặt
 	if direction != Vector3.ZERO:

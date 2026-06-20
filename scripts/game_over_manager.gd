@@ -66,6 +66,7 @@ func _ready() -> void:
 	_player = get_node_or_null(player_path) as Node3D
 	_build_ui()
 	visible = false
+	AudioManager.play_river_loop()
 	get_viewport().size_changed.connect(_relayout)
 	_relayout()
 
@@ -100,6 +101,11 @@ func show_game_over(reason_key: String = REASON_CUSTOM, custom_description: Stri
 	_go_reason_label.text = "Lý do: %s\n%s" % [title, description]
 	
 	_stop_chapter_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
+	if reason_key == REASON_FELL_IN_RIVER:
+		AudioManager.play_water_splash()
+	AudioManager.play_lose()
 	visible = true
 	get_tree().paused = true
 
@@ -113,6 +119,9 @@ func show_custom_game_over(title: String, description: String) -> void:
 	_win_panel.visible = false
 	_go_reason_label.text = "Lý do: %s\n%s" % [title, description]
 	_stop_chapter_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
+	AudioManager.play_lose()
 	visible = true
 	get_tree().paused = true
 
@@ -128,6 +137,9 @@ func show_win(description: String = "") -> void:
 	_win_reason_label.text = description
 	
 	_stop_chapter_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
+	AudioManager.play_win()
 	visible = true
 	get_tree().paused = true
 
@@ -143,6 +155,8 @@ func restart_current_scene() -> void:
 
 	_show_replay_loading()
 	_stop_chapter_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
 
 	if _reload_scene_path.is_empty():
 		get_tree().paused = false
@@ -159,6 +173,8 @@ func restart_current_scene() -> void:
 func go_to_menu() -> void:
 	var path := menu_scene_path if not menu_scene_path.is_empty() else "res://scenes/menu.scn"
 	_stop_chapter_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
 	get_tree().paused = false
 	get_tree().change_scene_to_file(path)
 

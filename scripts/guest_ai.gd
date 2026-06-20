@@ -541,10 +541,12 @@ func _process_food_wait(delta: float) -> void:
 		if _player_has_ordered_food():
 			_place_player_food_on_table()
 			_show_order_feedback(true)
+			AudioManager.play_right_food()
 			serve_food()
 		else:
 			get_tree().call_group("day_manager", "register_wrong_order", self)
 			_show_order_feedback(false)
+			AudioManager.play_wrong_food()
 			_leave_wrong_food()
 		return
 

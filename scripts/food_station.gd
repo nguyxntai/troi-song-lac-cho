@@ -45,15 +45,23 @@ var _player: Node3D
 var _interact_marker: MeshInstance3D
 var _interact_prompt: Sprite3D
 var _stock_label: Label3D
+var _boiling_sfx_player: AudioStreamPlayer3D
 
 
 func _ready() -> void:
 	stock_capacity = maxi(stock_capacity, 0)
 	stock_remaining = clampi(stock_remaining, 0, stock_capacity)
 	_player = get_tree().current_scene.find_child("NamChef", true, false) as Node3D
+	if station_mode == StationMode.FILL_BOKHO:
+		_boiling_sfx_player = AudioManager.play_boiling_loop(self)
 	_connect_interact_area()
 	_setup_interact_visuals()
 	_update_station_visuals()
+
+
+func _exit_tree() -> void:
+	if _boiling_sfx_player != null and is_instance_valid(_boiling_sfx_player):
+		_boiling_sfx_player.stop()
 
 
 func _process(_delta: float) -> void:
@@ -96,6 +104,7 @@ func _take_empty_bowl(hand_slot: Node) -> bool:
 	stock_remaining = maxi(stock_remaining - 1, 0)
 	_update_station_visuals()
 	_spawn_effect(EFFECT_EMPTY_BOWL)
+	AudioManager.play_take_empty_bowl()
 	return true
 
 
@@ -131,6 +140,7 @@ func _upgrade_held_food(hand_slot: Node, required_stage: int, result_stage: int)
 	held_item.queue_free()
 	_spawn_food_item(hand_slot, result_stage)
 	_update_station_visuals()
+	AudioManager.play_take_food_from_pot()
 	
 	if result_stage == STAGE_FULL_BOWL:
 		_spawn_effect(EFFECT_BOKHO)

@@ -180,6 +180,8 @@ func _on_settings_pressed() -> void:
 
 func _on_main_menu_pressed() -> void:
 	_stop_chapter_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
 	get_tree().paused = false
 	visible = false
 	get_tree().change_scene_to_file("res://scenes/menu.scn")

@@ -37,6 +37,9 @@ var _loading_canvas: CanvasLayer
 var _loading_ring: Control
 
 func _ready() -> void:
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
+	AudioManager.play_menu_music()
 	_camera = get_node_or_null(camera_path) as Camera3D
 	_nam_chef = get_node_or_null(nam_chef_path) as Node3D
 	_menu_buttons = get_node_or_null(menu_buttons_path) as Control
@@ -256,6 +259,8 @@ func _enable_menu_buttons() -> void:
 func _on_play_pressed() -> void:
 	if _is_loading_gameplay:
 		return
+
+	AudioManager.stop_menu_music()
 
 	if PauseMenu.has_played_intro:
 		gameplay_scene_path = direct_gameplay_scene_path

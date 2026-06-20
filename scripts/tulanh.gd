@@ -93,6 +93,7 @@ func spawn_xa_xi_to_hand(player: Node3D) -> void:
 	holder.set_meta(CARRY_VISUAL_META, lon_moi)
 	print("Thanh cong! Lon xa xi da xuat hien tren tay NamChef.")
 	_spawn_effect(EFFECT_SAXI, player)
+	AudioManager.play_fridge()
 
 
 func _spawn_effect(tex: Texture2D, player: Node3D) -> void:

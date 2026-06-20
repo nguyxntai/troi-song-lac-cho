@@ -38,6 +38,9 @@ var _is_ready_to_transition := false
 
 
 func _ready() -> void:
+	AudioManager.stop_menu_music()
+	AudioManager.stop_river_loop()
+	AudioManager.stop_player_walking()
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_scene()
 	_relayout()
