@@ -177,6 +177,11 @@ func _restart_walking_loop() -> void:
 
 
 func _play_one_shot(stream: AudioStream, volume_db: float = 0.0) -> void:
+	play_pitched(stream, volume_db, 1.0)
+
+
+## Phát SFX với cao độ tuỳ chỉnh (dùng cho ding combo lên tông dần).
+func play_pitched(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	if stream == null:
 		return
 
@@ -185,9 +190,16 @@ func _play_one_shot(stream: AudioStream, volume_db: float = 0.0) -> void:
 	player.process_mode = Node.PROCESS_MODE_ALWAYS
 	player.stream = stream
 	player.volume_db = volume_db
+	player.pitch_scale = clampf(pitch, 0.1, 4.0)
 	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+
+
+## Ding combo: cao độ tăng dần theo số combo (rất "đã tai").
+func play_combo_ding(combo: int) -> void:
+	var pitch: float = clampf(1.0 + float(combo) * 0.12, 1.0, 2.4)
+	play_pitched(UI_CLICK, -3.0, pitch)
 
 
 func _duplicate_looped_stream(source: AudioStream) -> AudioStream:

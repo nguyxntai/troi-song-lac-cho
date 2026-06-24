@@ -10,6 +10,7 @@ extends Camera3D
 @export var follow_speed: float = 8.0
 
 var _target: Node3D
+var _base_pos: Vector3
 
 func _ready() -> void:
 	_target = get_node_or_null(target_path)
@@ -17,7 +18,8 @@ func _ready() -> void:
 		printerr("CameraFollow: Không tìm thấy target '", target_path, "'!")
 	else:
 		# Đặt vị trí khởi đầu ngay tức thì (không lag ở frame đầu)
-		global_position = _target.global_position + offset
+		_base_pos = _target.global_position + offset
+		global_position = _base_pos
 		# Khóa hướng nhìn thẳng vào nhân vật từ đầu
 		look_at(_target.global_position)
 
@@ -29,9 +31,10 @@ func _physics_process(delta: float) -> void:
 	# Vị trí đích mà camera cần đến
 	var target_pos = _target.global_position + offset
 
-	# Nội suy mượt mà vị trí camera từ vị trí hiện tại đến vị trí đích trong luồng Physics
-	global_position = global_position.lerp(target_pos, follow_speed * delta)
-	
-	# ĐÃ THÊM: Buộc camera luôn luôn khóa mục tiêu nhìn thẳng vào NamChef, 
+	# Nội suy mượt mà vị trí nền (không dính rung), rồi cộng rung từ Juice
+	_base_pos = _base_pos.lerp(target_pos, follow_speed * delta)
+	global_position = _base_pos + Juice.get_shake_offset()
+
+	# ĐÃ THÊM: Buộc camera luôn luôn khóa mục tiêu nhìn thẳng vào NamChef,
 	# giữ trục nhìn ổn định bất kể mạn thuyền có lắc lư nghiêng trái/phải
 	look_at(_target.global_position)

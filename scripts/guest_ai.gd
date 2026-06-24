@@ -81,6 +81,8 @@ var _is_pressing_interact: bool = false
 var _has_food: bool = false
 var _current_order_id: String = ""
 var _served_food_visual: Node3D
+var _earned_stars: int = 0
+var _star_label: Label3D
 
 
 func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) -> void:
@@ -531,7 +533,7 @@ func _start_food_wait() -> void:
 
 func _process_food_wait(delta: float) -> void:
 	if _has_food:
-		_eat_timer = maxf(_eat_timer - delta, 0.0)
+		_eat_timer = maxf(_eat_timer - delta * GameManager.guest_eat_speed_mult, 0.0)
 		if _eat_timer <= 0.0:
 			_leave_after_eating()
 		return
@@ -539,21 +541,93 @@ func _process_food_wait(delta: float) -> void:
 	_update_interact_prompt()
 	if _process_press_interaction(_can_serve_food()):
 		if _player_has_ordered_food():
+			var quality: float = _get_held_food_quality()
+			_earned_stars = _compute_stars(quality)
 			_place_player_food_on_table()
 			_show_order_feedback(true)
+			_show_star_feedback(_earned_stars)
 			AudioManager.play_right_food()
+			var total: int = GameManager.report_served_guest(_earned_stars, _current_order_id)
+			_play_serve_juice(_earned_stars, total)
 			serve_food()
 		else:
 			get_tree().call_group("day_manager", "register_wrong_order", self)
+			GameManager.report_unhappy_guest("wrong_order")
 			_show_order_feedback(false)
 			AudioManager.play_wrong_food()
+			_play_wrong_juice()
 			_leave_wrong_food()
 		return
 
 	_food_timer = maxf(_food_timer - delta, 0.0)
 	_update_patience_bar()
 	if _food_timer <= 0.0:
+		GameManager.report_unhappy_guest("timeout")
 		_leave_without_food()
+
+
+## Đọc chất lượng (ngấm nước) của món đang cầm trên tay người chơi.
+func _get_held_food_quality() -> float:
+	var hand_slot: Node = _get_player_hand_slot()
+	if hand_slot == null or hand_slot.get_child_count() == 0:
+		return 1.0
+	return FoodMeta.get_water_quality(hand_slot.get_child(0))
+
+
+## Chấm sao 1–5: dựa trên kiên nhẫn còn lại + mức ngấm nước.
+func _compute_stars(quality: float) -> int:
+	var ratio: float = clampf(_food_timer / maxf(food_wait_time, 0.1), 0.0, 1.0)
+	var stars: int = 3
+	if ratio >= 0.66:
+		stars = 5
+	elif ratio >= 0.33:
+		stars = 4
+	# Trừ điểm nếu món từng ngấm nước.
+	stars -= int(round((1.0 - clampf(quality, 0.0, 1.0)) * 3.0))
+	return clampi(stars, 1, 5)
+
+
+func _show_star_feedback(stars: int) -> void:
+	if _star_label == null:
+		_star_label = Label3D.new()
+		_star_label.name = "StarFeedback"
+		_star_label.position = Vector3(0.0, 2.95, 0.0)
+		_star_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_star_label.no_depth_test = true
+		_star_label.font_size = 64
+		_star_label.modulate = Color(1.0, 0.85, 0.2, 1.0)
+		_star_label.outline_modulate = Color(0.2, 0.1, 0.0, 1.0)
+		_star_label.outline_size = 12
+		add_child(_star_label)
+	_star_label.text = "★".repeat(stars)
+	_star_label.visible = true
+
+
+func _play_serve_juice(stars: int, total: int) -> void:
+	var pos: Vector3 = global_position + Vector3.UP * 2.2
+	var color: Color = Color(0.4, 1.0, 0.45)
+	# Tiền bay lên.
+	Juice.popup_text(pos + Vector3.UP * 0.3, "+$%d" % total, color, 46, 1.2)
+	AudioManager.play_combo_ding(GameManager.combo_count)
+
+	if stars >= 5:
+		Juice.popup_text(pos, "TUYỆT VỜI!", Color(1.0, 0.85, 0.2), 56, 1.0)
+		Juice.burst(pos, Color(1.0, 0.85, 0.3), 24, 3.5)
+		Juice.shake_small()
+		Juice.hitstop(0.045, 0.12)
+		if GameManager.generous_remaining > 0:
+			Juice.popup_text(pos + Vector3.UP * 0.6, "KHÁCH SỘP x2!", Color(1.0, 0.55, 0.15), 44, 1.4)
+	elif stars >= 4:
+		Juice.popup_text(pos, "NGON!", color, 48, 1.0)
+		Juice.burst(pos, Color(0.5, 1.0, 0.6), 14, 3.0)
+	else:
+		Juice.burst(pos, Color(0.7, 0.8, 1.0), 8, 2.2)
+
+
+func _play_wrong_juice() -> void:
+	var pos: Vector3 = global_position + Vector3.UP * 2.2
+	Juice.popup_text(pos, "SAI MÓN!", Color(1.0, 0.3, 0.3), 50, 0.8)
+	Juice.shake_big()
 
 
 func _leave_after_eating() -> void:
@@ -682,7 +756,15 @@ func _choose_order() -> void:
 
 	var order: Dictionary = options[randi_range(0, options.size() - 1)]
 	_current_order_id = String(order.get("id", "bo_kho"))
-	
+
+	# Mùa khô (drink_demand_bias > 0): tăng xác suất khách gọi nước giải khát.
+	var drink_bias: float = GameManager.drink_demand_bias
+	if drink_bias > 0.0 and randf() < drink_bias:
+		for opt in options:
+			if String(opt.get("id", "")) == "nuoc_ngot":
+				_current_order_id = "nuoc_ngot"
+				break
+
 	if _current_order_id == "bo_kho" and _order_sprite:
 		_order_sprite.texture = EFFECT_BOKHO
 	elif _current_order_id == "nuoc_ngot" and _order_sprite:

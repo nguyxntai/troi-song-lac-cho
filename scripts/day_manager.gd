@@ -74,9 +74,9 @@ func _show_too_many_wrong_orders_game_over() -> void:
 
 	_is_finished = true
 	_is_running = false
-	var description: String = "Đưa sai món %d/%d lượt." % [_wrong_orders, max_wrong_orders]
-	if _game_over_manager:
-		_game_over_manager.show_game_over(GameOverManager.REASON_TOO_MANY_WRONG_ORDERS, description)
+	var header: String = "Đưa sai món %d/%d lượt." % [_wrong_orders, max_wrong_orders]
+	var results: Dictionary = ScoreManager.finalize(GameManager.day_index)
+	_present_results(results, false, header, GameOverManager.REASON_TOO_MANY_WRONG_ORDERS)
 
 
 func _show_win() -> void:
@@ -85,8 +85,9 @@ func _show_win() -> void:
 
 	_is_finished = true
 	_is_running = false
-	if _game_over_manager:
-		_game_over_manager.show_win("Đã phục vụ đủ %d/%d khách trong thời gian quy định." % [_served_customers, required_customers])
+	var header: String = "Đã phục vụ đủ %d/%d khách!" % [_served_customers, required_customers]
+	var results: Dictionary = ScoreManager.finalize(GameManager.day_index)
+	_present_results(results, true, header, "")
 
 
 func _show_not_enough_customers_game_over() -> void:
@@ -95,9 +96,56 @@ func _show_not_enough_customers_game_over() -> void:
 
 	_is_finished = true
 	_is_running = false
-	var description: String = "Hết ngày nhưng mới phục vụ %d/%d khách." % [_served_customers, required_customers]
+	var header: String = "Hết ngày, mới phục vụ %d/%d khách." % [_served_customers, required_customers]
+	var results: Dictionary = ScoreManager.finalize(GameManager.day_index)
+	_present_results(results, false, header, GameOverManager.REASON_NOT_ENOUGH_CUSTOMERS)
+
+
+## Ưu tiên màn ResultsScreen đẹp; nếu thiếu thì fallback panel cũ của GameOverManager.
+func _present_results(results: Dictionary, is_win: bool, header: String, reason_key: String) -> void:
 	if _game_over_manager:
-		_game_over_manager.show_game_over(GameOverManager.REASON_NOT_ENOUGH_CUSTOMERS, description)
+		_game_over_manager.watch_player_fall = false
+	var results_screen: Node = get_tree().current_scene.find_child("ResultsScreen", true, false)
+	if results_screen and results_screen.has_method("show_results"):
+		results_screen.call("show_results", results, is_win, header)
+		return
+	if _game_over_manager:
+		if is_win:
+			_game_over_manager.show_win(header + "\n" + _build_results_text(results))
+		else:
+			_game_over_manager.show_game_over(reason_key, header + "\n\n" + _build_results_text(results))
+
+
+## Dựng đoạn text tổng kết: điểm, huy chương, kỷ lục, thống kê.
+func _build_results_text(results: Dictionary) -> String:
+	var lines: Array[String] = []
+	lines.append("Điểm: %d" % int(results.get("score", 0)))
+	var medal_name: String = String(results.get("medal_name", ""))
+	if int(results.get("medal", 0)) > 0:
+		lines.append("Huy chương: %s" % medal_name)
+	else:
+		var next_at: int = int(results.get("next_medal_at", 0))
+		if next_at > 0:
+			lines.append("Còn %d điểm nữa để đạt huy chương!" % maxi(next_at - int(results.get("score", 0)), 0))
+	if bool(results.get("is_record", false)):
+		lines.append("★ KỶ LỤC MỚI! ★")
+	else:
+		lines.append("Kỷ lục: %d" % int(results.get("best", 0)))
+	lines.append("5★: %d  ·  Sai: %d  ·  Lỡ: %d" % [
+		int(results.get("five_stars", 0)),
+		int(results.get("wrong", 0)),
+		int(results.get("missed", 0)),
+	])
+	lines.append("Cấp bậc: %s" % GameManager.get_rank_title())
+	return "\n".join(lines)
+
+
+func _celebrate_win() -> void:
+	var player: Node = get_tree().current_scene.find_child("NamChef", true, false)
+	if player is Node3D:
+		var pos: Vector3 = (player as Node3D).global_position + Vector3.UP * 2.2
+		Juice.confetti(pos, 90)
+		Juice.popup_text(pos + Vector3.UP * 0.8, "HOÀN THÀNH!", Color(1.0, 0.85, 0.2), 60, 1.2)
 
 
 func _build_hud() -> void:

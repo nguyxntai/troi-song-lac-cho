@@ -23,7 +23,11 @@ const ANIM_CARRY_JUMP: StringName = &"carrying jump generated"
 @onready var carry_socket: Node3D = _ensure_carry_socket()
 @onready var skeleton: Skeleton3D = $Nam/Armature/Skeleton3D
 
+@export var enable_manual_drop: bool = true   # phím Q thả đồ (test Thủy Kích)
+@export var drop_action: StringName = &"drop_food"
+
 var _root_bone_pose_position: Vector3 = Vector3.ZERO
+var _slip_accumulator: float = 0.0
 
 
 func _exit_tree() -> void:
@@ -89,6 +93,11 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	# ==========================================
+	# 1B. THỦY KÍCH: THẢ ĐỒ & TUỘT TAY KHI BÃO
+	# ==========================================
+	_handle_drop_and_slip(delta, is_carrying, direction != Vector3.ZERO)
+
+	# ==========================================
 	# 2. XỬ LÝ QUẢN LÝ ANIMATION (HÒA TRỘN MƯỢT MÀ)
 	# ==========================================
 	if is_carrying:
@@ -111,6 +120,77 @@ func _physics_process(delta: float) -> void:
 
 func _is_carrying_item() -> bool:
 	return hand_slot != null and hand_slot.get_child_count() > 0
+
+
+func _handle_drop_and_slip(delta: float, is_carrying: bool, is_moving: bool) -> void:
+	if not is_carrying:
+		_slip_accumulator = 0.0
+		return
+
+	# Thả đồ thủ công (test): phím Q.
+	if enable_manual_drop and InputMap.has_action(drop_action) and Input.is_action_just_pressed(drop_action):
+		drop_carried_item(1.0)
+		return
+
+	# Tuột tay ngẫu nhiên khi mùa bão (slip_chance do WeatherManager set).
+	var slip_chance: float = GameManager.slip_chance if is_moving else GameManager.slip_chance * 0.25
+	if slip_chance <= 0.0:
+		return
+	_slip_accumulator += delta
+	if _slip_accumulator >= 0.5:
+		_slip_accumulator = 0.0
+		if randf() < slip_chance * 0.5:
+			drop_carried_item(0.6)
+
+
+## Làm rớt món đang cầm xuống sông. Trả về true nếu có thả.
+func drop_carried_item(strength: float = 1.0) -> bool:
+	if hand_slot == null or hand_slot.get_child_count() == 0:
+		return false
+
+	var holder: Node = hand_slot.get_child(0)
+	var visual: Node3D = null
+	if holder.has_meta(FoodMeta.CARRY_VISUAL):
+		var v: Variant = holder.get_meta(FoodMeta.CARRY_VISUAL)
+		if v is Node3D and is_instance_valid(v):
+			visual = v as Node3D
+
+	# Gom dữ liệu để có thể tái tạo khi vớt.
+	var data: Dictionary = {
+		"food_id": String(holder.get_meta(FoodMeta.FOOD_ID, "")) if holder.has_meta(FoodMeta.FOOD_ID) else "",
+		"is_servable": FoodMeta.is_servable(holder),
+		"food_stage": int(holder.get_meta(FoodMeta.FOOD_STAGE)) if holder.has_meta(FoodMeta.FOOD_STAGE) else FoodMeta.STAGE_FULL_BOWL,
+		"water_quality": FoodMeta.get_water_quality(holder),
+	}
+	for key in [FoodMeta.TABLE_POSITION, FoodMeta.TABLE_ROTATION, FoodMeta.TABLE_SCALE]:
+		if holder.has_meta(key):
+			var short_key: String = "table_pos"
+			if key == FoodMeta.TABLE_ROTATION:
+				short_key = "table_rot"
+			elif key == FoodMeta.TABLE_SCALE:
+				short_key = "table_scale"
+			data[short_key] = holder.get_meta(key)
+	if visual:
+		data["carry_pos"] = visual.position
+		data["carry_rot"] = visual.rotation_degrees
+		data["carry_scale"] = visual.scale
+
+	var spawn_pos: Vector3 = visual.global_position if visual else global_position + Vector3.UP * 0.6
+	var forward: Vector3 = -global_transform.basis.z
+	var deviation: float = GameManager.throw_deviation
+	if deviation > 0.0:
+		forward = forward.rotated(Vector3.UP, randf_range(-deviation, deviation))
+	var throw_velocity: Vector3 = forward * (1.4 * strength) + Vector3.UP * 1.2
+
+	# Tách visual ra khỏi tay, dọn holder.
+	if visual:
+		var p: Node = visual.get_parent()
+		if p:
+			p.remove_child(visual)
+	holder.queue_free()
+
+	WaterSystem.drop_food(visual, data, spawn_pos, throw_velocity)
+	return true
 
 
 func _play_animation(animation_name: StringName, blend_time: float, custom_speed: float = 1.0) -> void:
