@@ -188,7 +188,7 @@ func _setup_interact_visuals() -> void:
 func _setup_patience_bar() -> void:
 	_patience_bar_root = Node3D.new()
 	_patience_bar_root.name = "PatienceBar"
-	_patience_bar_root.position = Vector3(0.0, 2.15, 0.0)
+	_patience_bar_root.position = Vector3(0.0, 2.7, 0.0)
 	_patience_bar_root.visible = false
 	add_child(_patience_bar_root)
 
@@ -223,18 +223,20 @@ func _setup_patience_bar() -> void:
 func _setup_order_visuals() -> void:
 	_order_sprite = Sprite3D.new()
 	_order_sprite.name = "OrderSprite"
-	_order_sprite.position = Vector3(0.0, 2.65, 0.0)
+	_order_sprite.position = Vector3(0.0, 3.2, 0.0)
 	_order_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_order_sprite.no_depth_test = true
+	_order_sprite.render_priority = 100
 	_order_sprite.pixel_size = 0.0006
 	_order_sprite.visible = false
 	add_child(_order_sprite)
 
 	_feedback_sprite = Sprite3D.new()
 	_feedback_sprite.name = "OrderFeedbackSprite"
-	_feedback_sprite.position = Vector3(0.0, 2.68, 0.0)
+	_feedback_sprite.position = Vector3(0.0, 3.25, 0.0)
 	_feedback_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_feedback_sprite.no_depth_test = true
+	_feedback_sprite.render_priority = 100
 	_feedback_sprite.pixel_size = 0.0012
 	_feedback_sprite.visible = false
 	add_child(_feedback_sprite)
@@ -591,7 +593,7 @@ func _show_star_feedback(stars: int) -> void:
 	if _star_label == null:
 		_star_label = Label3D.new()
 		_star_label.name = "StarFeedback"
-		_star_label.position = Vector3(0.0, 2.95, 0.0)
+		_star_label.position = Vector3(0.0, 3.5, 0.0)
 		_star_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_star_label.no_depth_test = true
 		_star_label.font_size = 64

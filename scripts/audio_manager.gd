@@ -12,7 +12,10 @@ const TAKE_EMPTY_BOWL: AudioStream = preload("res://assets/SFX/taking-an-empty-b
 const TAKE_FOOD_FROM_POT: AudioStream = preload("res://assets/SFX/Taking-food-from-the-steel-pot-sound-effect-360686.ogg")
 const UI_CLICK: AudioStream = preload("res://assets/SFX/u_u4pf5h7zip-click-345983.ogg")
 const FRIDGE: AudioStream = preload("res://assets/SFX/freesound_community-fridge-94795.ogg")
-const MENU_MUSIC: AudioStream = preload("res://assets/Music/COCO-JAMBO-Viet-Hoa-Cau-Ca-Xuan-Ve.mp3")
+const MENU_MUSIC_TRACKS: Array[AudioStream] = [
+	preload("res://assets/Music/Mekong-Drift-Chill.ogg"),
+	preload("res://assets/Music/Mekong-Drift-EDM.ogg"),
+]
 
 var _menu_music_player: AudioStreamPlayer
 var _river_player: AudioStreamPlayer
@@ -73,7 +76,8 @@ func play_menu_music() -> void:
 	if _menu_music_player.playing:
 		return
 
-	_menu_music_player.stream = _duplicate_looped_stream(MENU_MUSIC)
+	var track: AudioStream = MENU_MUSIC_TRACKS.pick_random()
+	_menu_music_player.stream = _duplicate_looped_stream(track)
 	_menu_music_player.volume_db = -12.0
 	_menu_music_player.play()
 
@@ -163,6 +167,8 @@ func _setup_loop_players() -> void:
 
 func _restart_menu_music() -> void:
 	if _menu_music_should_loop and _menu_music_player != null:
+		var track: AudioStream = MENU_MUSIC_TRACKS.pick_random()
+		_menu_music_player.stream = _duplicate_looped_stream(track)
 		_menu_music_player.play()
 
 
