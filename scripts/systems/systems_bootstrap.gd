@@ -9,6 +9,7 @@ const ShopPanelScript := preload("res://scripts/systems/shop_panel.gd")
 const WeatherManagerScript := preload("res://scripts/systems/weather_manager.gd")
 const EventManagerScript := preload("res://scripts/systems/event_manager.gd")
 const ResultsScreenScript := preload("res://scripts/systems/results_screen.gd")
+const TutorialManagerScript := preload("res://scripts/systems/tutorial_manager.gd")
 
 @export var reset_money_on_start: bool = false
 @export var spawn_economy_hud: bool = true
@@ -19,6 +20,12 @@ const ResultsScreenScript := preload("res://scripts/systems/results_screen.gd")
 
 
 func _ready() -> void:
+	# Nếu đang ở scene tutorial, tắt hệ thống thời tiết và sự kiện ngẫu nhiên.
+	var _is_tutorial := _check_is_tutorial()
+	if _is_tutorial:
+		GameManager.enable_weather = false
+		GameManager.enable_random_events = false
+
 	# Khởi tạo phiên chơi (giữ tiền & nâng cấp giữa các ngày).
 	GameManager.start_session(reset_money_on_start)
 
@@ -48,6 +55,17 @@ func _spawn_systems() -> void:
 		_add_node(host, Node.new(), WeatherManagerScript, "WeatherManager")
 	if spawn_events and GameManager.enable_random_events:
 		_add_node(host, Node.new(), EventManagerScript, "EventManager")
+
+	# Spawn TutorialManager cho scene tutorial.
+	if _check_is_tutorial():
+		_add_node(host, Node.new(), TutorialManagerScript, "TutorialManager")
+
+
+func _check_is_tutorial() -> bool:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return false
+	return scene.scene_file_path.get_file() == "tutorial.tscn"
 
 
 ## Gắn script vào 1 node có sẵn đúng base type (CanvasLayer cho UI, Node cho manager).

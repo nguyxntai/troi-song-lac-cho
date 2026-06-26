@@ -5,6 +5,7 @@ extends Node
 ## EventBus.guest_served.connect(callable) mà không cần tham chiếu trực tiếp lẫn nhau.
 
 # ----- Kinh tế / phục vụ -----
+signal guest_seated(guest: Node, table: Node)
 signal guest_served(stars: int, tip: int, food_id: String)
 signal guest_left_unhappy(reason: String)        # bỏ về, sai món, hết kiên nhẫn...
 signal wrong_order()

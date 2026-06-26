@@ -14,6 +14,7 @@ var data: Dictionary = {
 	"best_scores": {},      # { "1": 2400, "2": ... } theo day_index
 	"best_rank": 0,
 	"unlocks": {},          # { upgrade_id/cosmetic_id: true }
+	"has_completed_tutorial": false,
 }
 
 var _dirty: bool = false
@@ -122,5 +123,15 @@ func reset_all_progress() -> void:
 		"best_scores": {},
 		"best_rank": 0,
 		"unlocks": {},
+		"has_completed_tutorial": false,
 	}
+	save_game()
+
+
+# ---------- Tutorial ----------
+func has_completed_tutorial() -> bool:
+	return bool(data.get("has_completed_tutorial", false))
+
+func set_tutorial_completed(val: bool) -> void:
+	data["has_completed_tutorial"] = val
 	save_game()

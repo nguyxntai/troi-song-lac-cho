@@ -36,7 +36,7 @@ func _process(_delta: float) -> void:
 	if not player or not _can_take_drink(player):
 		return
 
-	if Input.is_action_just_pressed(interact_action):
+	if not GameManager.is_tutorial_locked and Input.is_action_just_pressed(interact_action):
 		spawn_xa_xi_to_hand(player)
 
 

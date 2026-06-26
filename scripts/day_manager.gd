@@ -1,6 +1,8 @@
 extends CanvasLayer
 class_name DayManager
 
+const UI_GAMEPLAY_TEXTURE: Texture2D = preload("res://assets/UI/UIGameplay.png")
+
 @export var required_customers: int = 5
 @export var day_duration: float = 300.0
 @export var max_wrong_orders: int = 3
@@ -13,8 +15,17 @@ var _time_left: float = 0.0
 var _is_finished: bool = false
 var _is_running: bool = false
 var _game_over_manager: GameOverManager
-var _hud_label: Label
 var _last_display_second: int = -1
+
+# HUD elements
+var _hud_bg: TextureRect
+var _customer_label: Label
+var _wrong_label: Label
+var _timer_label: Label
+
+# Kích thước HUD trên màn hình (scale từ 1536×1024 gốc).
+const HUD_DISPLAY_WIDTH := 280.0
+const HUD_ASPECT := 1536.0 / 1024.0
 
 
 func _ready() -> void:
@@ -27,6 +38,13 @@ func _ready() -> void:
 
 	_build_hud()
 	_update_hud()
+
+	# Tutorial: thời gian dài hơn, yêu cầu 5 khách tổng cộng (bao gồm khách đầu tiên).
+	if get_tree().current_scene.scene_file_path.get_file() == "tutorial.tscn":
+		required_customers = 5
+		day_duration = 600.0
+		_time_left = day_duration
+		_update_hud()
 
 
 func _process(delta: float) -> void:
@@ -149,28 +167,79 @@ func _celebrate_win() -> void:
 
 
 func _build_hud() -> void:
-	_hud_label = Label.new()
-	_hud_label.name = "DayHudLabel"
-	_hud_label.position = Vector2(24.0, 20.0)
-	_hud_label.add_theme_font_size_override("font_size", 28)
-	_hud_label.add_theme_color_override("font_color", Color(1.0, 0.97, 0.86, 1.0))
-	_hud_label.add_theme_color_override("font_outline_color", Color(0.13, 0.06, 0.02, 1.0))
-	_hud_label.add_theme_constant_override("outline_size", 7)
-	add_child(_hud_label)
+	var hud_height := HUD_DISPLAY_WIDTH / HUD_ASPECT
+
+	# Nền ảnh UIGameplay.
+	_hud_bg = TextureRect.new()
+	_hud_bg.name = "GameplayHudBg"
+	_hud_bg.texture = UI_GAMEPLAY_TEXTURE
+	_hud_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_hud_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_hud_bg.position = Vector2(-5.0, -5.0)
+	_hud_bg.size = Vector2(HUD_DISPLAY_WIDTH, hud_height)
+	_hud_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hud_bg)
+
+	# Tạo 3 label overlay cho 3 ô trống trong ảnh.
+	# Vị trí ước tính theo tỷ lệ ảnh gốc (1536×1024):
+	# - Ô 1 (khách): nằm ở ~55%-92% ngang, ~8%-30% dọc
+	# - Ô 2 (sai món): nằm ở ~55%-92% ngang, ~36%-58% dọc
+	# - Ô 3 (timer): nằm ở ~55%-92% ngang, ~64%-86% dọc
+
+	_customer_label = _create_hud_label()
+	_customer_label.name = "CustomerLabel"
+	_hud_bg.add_child(_customer_label)
+
+	_wrong_label = _create_hud_label()
+	_wrong_label.name = "WrongLabel"
+	_hud_bg.add_child(_wrong_label)
+
+	_timer_label = _create_hud_label()
+	_timer_label.name = "TimerLabel"
+	_hud_bg.add_child(_timer_label)
+
+	# Đặt vị trí các label dựa trên kích thước HUD.
+	_layout_hud_labels()
+
+
+func _create_hud_label() -> Label:
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", Color(0.35, 0.18, 0.05, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0.95, 0.85, 0.65, 1.0))
+	label.add_theme_constant_override("outline_size", 2)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+func _layout_hud_labels() -> void:
+	var w := _hud_bg.size.x
+	var h := _hud_bg.size.y
+
+	# Ô 1: Khách hàng.
+	_customer_label.position = Vector2(w * 0.42, h * 0.16)
+	_customer_label.size = Vector2(w * 0.46, h * 0.18)
+
+	# Ô 2: Sai món.
+	_wrong_label.position = Vector2(w * 0.42, h * 0.39)
+	_wrong_label.size = Vector2(w * 0.46, h * 0.18)
+
+	# Ô 3: Thời gian.
+	_timer_label.position = Vector2(w * 0.42, h * 0.65)
+	_timer_label.size = Vector2(w * 0.46, h * 0.18)
 
 
 func _update_hud() -> void:
-	if not _hud_label:
-		return
-
 	_last_display_second = int(ceil(_time_left))
-	_hud_label.text = "Khách: %d/%d\nSai món: %d/%d\nThời gian: %s" % [
-		_served_customers,
-		required_customers,
-		_wrong_orders,
-		max_wrong_orders,
-		_format_time(_time_left),
-	]
+
+	if _customer_label:
+		_customer_label.text = "%d / %d" % [_served_customers, required_customers]
+	if _wrong_label:
+		_wrong_label.text = "%d / %d" % [_wrong_orders, max_wrong_orders]
+	if _timer_label:
+		_timer_label.text = _format_time(_time_left)
 
 
 func _format_time(seconds_left: float) -> String:
@@ -178,3 +247,4 @@ func _format_time(seconds_left: float) -> String:
 	var minutes: int = floori(float(total_seconds) / 60.0)
 	var seconds: int = total_seconds % 60
 	return "%02d:%02d" % [minutes, seconds]
+

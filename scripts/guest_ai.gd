@@ -83,9 +83,17 @@ var _current_order_id: String = ""
 var _served_food_visual: Node3D
 var _earned_stars: int = 0
 var _star_label: Label3D
+var forced_order_id: String = ""
+
+# Tutorial modifiers
+var is_tutorial_first_guest := false
+var is_tutorial_guest := false
 
 
 func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) -> void:
+	if get_tree().current_scene.scene_file_path.get_file() == "tutorial.tscn":
+		is_tutorial_guest = true
+
 	var spawn_point: Node3D = route.get("spawn_point") as Node3D
 	var spawn_position: Vector3 = route.get("spawn_position", spawn_point.global_position if spawn_point else Vector3.ZERO)
 	_spawn_position = spawn_position
@@ -404,7 +412,7 @@ func _process_press_interaction(can_interact: bool) -> bool:
 		_reset_press_interaction()
 		return false
 
-	if Input.is_action_just_pressed(interact_action):
+	if not GameManager.is_tutorial_locked and Input.is_action_just_pressed(interact_action):
 		_is_pressing_interact = true
 		_update_press_effect(true)
 
@@ -511,6 +519,7 @@ func _sit_down() -> void:
 	_start_food_wait()
 
 	_play_animation(ANIM_SIT, 0.1)
+	EventBus.guest_seated.emit(self, _reserved_table)
 
 
 func serve_food() -> void:
@@ -518,7 +527,10 @@ func serve_food() -> void:
 		return
 
 	_has_food = true
-	_eat_timer = maxf(eat_time, 0.1)
+	if is_tutorial_first_guest:
+		_eat_timer = 0.0
+	else:
+		_eat_timer = maxf(eat_time, 0.1)
 	_set_patience_bar_visible(false)
 	_set_order_visuals_visible(false)
 	_set_serving_visuals(false)
@@ -561,7 +573,12 @@ func _process_food_wait(delta: float) -> void:
 			_leave_wrong_food()
 		return
 
-	_food_timer = maxf(_food_timer - delta, 0.0)
+	if is_tutorial_first_guest:
+		pass # Infinite patience
+	else:
+		var drain_mult: float = 0.5 if is_tutorial_guest else 1.0
+		_food_timer = maxf(_food_timer - delta * drain_mult, 0.0)
+		
 	_update_patience_bar()
 	if _food_timer <= 0.0:
 		GameManager.report_unhappy_guest("timeout")
@@ -752,6 +769,17 @@ func _update_patience_bar() -> void:
 
 
 func _choose_order() -> void:
+	# Tutorial override: force a specific order if set.
+	if forced_order_id != "":
+		_current_order_id = forced_order_id
+		if _current_order_id == "bo_kho" and _order_sprite:
+			_order_sprite.texture = EFFECT_BOKHO
+		elif _current_order_id == "nuoc_ngot" and _order_sprite:
+			_order_sprite.texture = EFFECT_SAXI
+		if _order_sprite:
+			_order_sprite.visible = true
+		return
+
 	var options: Array[Dictionary] = order_options
 	if options.is_empty():
 		options = ORDER_OPTIONS

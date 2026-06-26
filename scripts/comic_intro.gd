@@ -1,7 +1,7 @@
 extends Control
 
 const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
-const GAMEPLAY_SCENE_PATH := "res://scenes/chapter1.tscn"
+var gameplay_scene_path := ""
 const REFERENCE_SIZE := Vector2(1672.0, 941.0)
 const PAGE_TEXTURES := [
 	"res://assets/comic/chapter1/page_01_full.png",
@@ -48,12 +48,14 @@ func _ready() -> void:
 	_show_page(0, true)
 	_start_intro()
 	
+	gameplay_scene_path = "res://scenes/chapter1.tscn" if SaveManager.has_completed_tutorial() else "res://scenes/tutorial.tscn"
+
 	_loading_ring.call("set_progress", 0.0)
-	var error: int = ResourceLoader.load_threaded_request(GAMEPLAY_SCENE_PATH)
+	var error: int = ResourceLoader.load_threaded_request(gameplay_scene_path)
 	if error == OK:
 		_is_gameplay_loading = true
 	else:
-		push_error("Cannot start threaded loading for %s. Error: %s" % [GAMEPLAY_SCENE_PATH, error])
+		push_error("Cannot start threaded loading for %s. Error: %s" % [gameplay_scene_path, error])
 
 
 func _process(delta: float) -> void:
@@ -264,12 +266,12 @@ func _start_gameplay() -> void:
 	_is_ready_to_transition = true
 	
 	if not _is_gameplay_loading:
-		get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
+		get_tree().change_scene_to_file(gameplay_scene_path)
 
 
 func _poll_gameplay_load() -> void:
 	var progress: Array = []
-	var status: int = ResourceLoader.load_threaded_get_status(GAMEPLAY_SCENE_PATH, progress)
+	var status: int = ResourceLoader.load_threaded_get_status(gameplay_scene_path, progress)
 
 	if not progress.is_empty():
 		_loading_ring.call("set_progress", float(progress[0]))
@@ -281,14 +283,18 @@ func _poll_gameplay_load() -> void:
 		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
 			return
 		ResourceLoader.THREAD_LOAD_LOADED:
-			var scene_resource: Resource = ResourceLoader.load_threaded_get(GAMEPLAY_SCENE_PATH) as Resource
+			var scene_resource: Resource = ResourceLoader.load_threaded_get(gameplay_scene_path) as Resource
 			var packed_scene := scene_resource as PackedScene
 			if packed_scene:
+				_is_gameplay_loading = false
 				get_tree().change_scene_to_packed(packed_scene)
 			else:
-				get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
+				push_error("Loaded gameplay resource is not a PackedScene: %s" % gameplay_scene_path)
+				_is_gameplay_loading = false
+				get_tree().change_scene_to_file(gameplay_scene_path)
 		ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
-			get_tree().change_scene_to_file(GAMEPLAY_SCENE_PATH)
+			_is_gameplay_loading = false
+			get_tree().change_scene_to_file(gameplay_scene_path)
 
 
 func _update_hint(delta: float) -> void:

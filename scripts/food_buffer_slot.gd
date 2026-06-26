@@ -35,7 +35,7 @@ func _process(_delta: float) -> void:
 	if not _player_in_range or not _can_interact(_player_in_range):
 		return
 
-	if Input.is_action_just_pressed(interact_action):
+	if not GameManager.is_tutorial_locked and Input.is_action_just_pressed(interact_action):
 		_interact(_player_in_range)
 
 

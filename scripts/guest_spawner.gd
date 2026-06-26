@@ -41,6 +41,7 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _spawned_count: int = 0
 var _active_guests: Array[Node] = []
 var _spawn_loop_started: bool = false
+var spawn_paused: bool = false
 
 
 func _ready() -> void:
@@ -102,7 +103,7 @@ func _start_spawn_loop() -> void:
 
 	while is_inside_tree():
 		_cleanup_active_guests()
-		if _active_guests.size() < _get_guest_limit() and not _get_free_table_spots().is_empty():
+		if not spawn_paused and _active_guests.size() < _get_guest_limit() and not _get_free_table_spots().is_empty():
 			spawn_random_guest()
 
 		if not repeat_until_full:

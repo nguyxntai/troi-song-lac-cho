@@ -99,7 +99,7 @@ func _update_rescue(_delta: float) -> void:
 	var can_rescue: bool = _can_rescue()
 	if _prompt:
 		_prompt.visible = can_rescue
-	if can_rescue and Input.is_action_just_pressed(&"interact"):
+	if can_rescue and not GameManager.is_tutorial_locked and Input.is_action_just_pressed(&"interact"):
 		_rescue()
 
 

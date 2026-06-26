@@ -65,12 +65,14 @@ func _physics_process(delta: float) -> void:
 		velocity.y = -0.1
 
 	# Nhảy khi đang đứng trên sàn và bấm nút ui_accept (Space)
-	if is_on_floor() and Input.is_action_just_pressed("ui_accept"):
+	if is_on_floor() and not GameManager.is_tutorial_locked and Input.is_action_just_pressed("ui_accept"):
 		# Lực nhảy thuần túy cố định, không bị ảnh hưởng bởi vận tốc thuyền
 		velocity.y = JUMP_SPEED
 
 	# Lấy hướng bấm nút di chuyển (W, A, S, D)
-	var input_dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var input_dir := Vector2.ZERO
+	if not GameManager.is_tutorial_locked:
+		input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var direction := Vector3(input_dir.x, 0, input_dir.y).normalized()
 	var is_carrying: bool = _is_carrying_item()
 	var current_move_speed: float = MOVE_SPEED * (CARRY_MOVE_SPEED_MULTIPLIER if is_carrying else 1.0)
@@ -128,7 +130,7 @@ func _handle_drop_and_slip(delta: float, is_carrying: bool, is_moving: bool) -> 
 		return
 
 	# Thả đồ thủ công (test): phím Q.
-	if enable_manual_drop and InputMap.has_action(drop_action) and Input.is_action_just_pressed(drop_action):
+	if enable_manual_drop and not GameManager.is_tutorial_locked and InputMap.has_action(drop_action) and Input.is_action_just_pressed(drop_action):
 		drop_carried_item(1.0)
 		return
 

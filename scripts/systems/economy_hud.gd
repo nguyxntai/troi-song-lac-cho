@@ -3,6 +3,14 @@ extends CanvasLayer
 ## HUD kinh tế: tiền, thanh Uy Tín (Popularity), trạng thái combo "Khách sộp".
 ## Dựng bằng code, lắng nghe EventBus. Bootstrap thêm vào scene.
 
+const UI_MONEY_TEXTURE: Texture2D = preload("res://assets/UI/UIMoneyGameplay.png")
+
+# Kích thước hiển thị (scale từ 577×433 gốc).
+const MONEY_HUD_WIDTH := 200.0
+const MONEY_HUD_ASPECT := 577.0 / 433.0
+
+var _money_container: Control
+var _money_bg: TextureRect
 var _money_label: Label
 var _rank_label: Label
 var _combo_label: Label
@@ -38,28 +46,51 @@ func _build_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
-	# Tiền (góc trên phải).
+	# Tiền (góc trên phải) — nền UIMoneyGameplay.png + label overlay.
+	var money_hud_height := MONEY_HUD_WIDTH / MONEY_HUD_ASPECT
+
+	_money_container = Control.new()
+	_money_container.name = "MoneyContainer"
+	_money_container.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_money_container.offset_left = -(MONEY_HUD_WIDTH - 5.0)
+	_money_container.offset_top = -5.0
+	_money_container.offset_right = 5.0
+	_money_container.offset_bottom = -5.0 + money_hud_height
+	_money_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_money_container.pivot_offset = Vector2(MONEY_HUD_WIDTH * 0.5, money_hud_height * 0.5)
+	root.add_child(_money_container)
+
+	_money_bg = TextureRect.new()
+	_money_bg.name = "MoneyBg"
+	_money_bg.texture = UI_MONEY_TEXTURE
+	_money_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_money_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_money_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_money_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_money_container.add_child(_money_bg)
+
 	_money_label = Label.new()
+	_money_label.name = "MoneyLabel"
 	_money_label.text = "$0"
-	_money_label.position = Vector2(-260.0, 20.0)
-	_money_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_money_label.offset_left = -260.0
-	_money_label.offset_top = 20.0
-	_money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_money_label.add_theme_font_size_override("font_size", 34)
-	_money_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45, 1.0))
-	_money_label.add_theme_color_override("font_outline_color", Color(0.15, 0.08, 0.0, 1.0))
-	_money_label.add_theme_constant_override("outline_size", 8)
-	_money_label.pivot_offset = Vector2(230, 20)
-	root.add_child(_money_label)
+	_money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_money_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_money_label.add_theme_font_size_override("font_size", 20)
+	_money_label.add_theme_color_override("font_color", Color(0.35, 0.18, 0.05, 1.0))
+	_money_label.add_theme_color_override("font_outline_color", Color(0.95, 0.85, 0.65, 1.0))
+	_money_label.add_theme_constant_override("outline_size", 2)
+	_money_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Tinh chỉnh box để số liệu lọt vào chính giữa giấy.
+	_money_label.position = Vector2(MONEY_HUD_WIDTH * 0.08, money_hud_height * 0.52)
+	_money_label.size = Vector2(MONEY_HUD_WIDTH * 0.76, money_hud_height * 0.32)
+	_money_container.add_child(_money_label)
 
 	# Danh hiệu cấp bậc (dưới tiền).
 	_rank_label = Label.new()
 	_rank_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_rank_label.offset_left = -300.0
-	_rank_label.offset_top = 92.0
+	_rank_label.offset_top = 10.0 + money_hud_height + 6.0
 	_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_rank_label.add_theme_font_size_override("font_size", 18)
+	_rank_label.add_theme_font_size_override("font_size", 14)
 	_rank_label.add_theme_color_override("font_color", Color(0.95, 0.9, 0.7, 1.0))
 	_rank_label.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0, 1.0))
 	_rank_label.add_theme_constant_override("outline_size", 5)
@@ -70,9 +101,9 @@ func _build_ui() -> void:
 	_combo_label = Label.new()
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_combo_label.offset_left = -300.0
-	_combo_label.offset_top = 62.0
+	_combo_label.offset_top = 10.0 + money_hud_height + 28.0
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.add_theme_font_size_override("font_size", 22)
+	_combo_label.add_theme_font_size_override("font_size", 16)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15, 1.0))
 	_combo_label.add_theme_color_override("font_outline_color", Color(0.2, 0.05, 0.0, 1.0))
 	_combo_label.add_theme_constant_override("outline_size", 6)
@@ -143,7 +174,7 @@ func _refresh_money(new_amount: int, delta: int) -> void:
 		return
 	_money_label.text = "$%d" % new_amount
 	if delta != 0 and is_instance_valid(_money_label):
-		var c: Color = Color(0.4, 1.0, 0.4) if delta > 0 else Color(1.0, 0.4, 0.4)
+		var c: Color = Color(0.15, 0.55, 0.15) if delta > 0 else Color(0.7, 0.2, 0.2)
 		_money_label.add_theme_color_override("font_color", c)
 		if _money_tween and _money_tween.is_valid():
 			_money_tween.kill()
@@ -151,13 +182,14 @@ func _refresh_money(new_amount: int, delta: int) -> void:
 		_money_tween.tween_interval(0.25)
 		_money_tween.tween_callback(func():
 			if is_instance_valid(_money_label):
-				_money_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45, 1.0)))
-		# Nảy scale cho "đã mắt".
+				_money_label.add_theme_color_override("font_color", Color(0.35, 0.18, 0.05, 1.0)))
+		# Nảy scale container cho "đã mắt".
 		if _bounce_tween and _bounce_tween.is_valid():
 			_bounce_tween.kill()
-		_money_label.scale = Vector2.ONE * 1.3
-		_bounce_tween = create_tween()
-		_bounce_tween.tween_property(_money_label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		if is_instance_valid(_money_container):
+			_money_container.scale = Vector2.ONE * 1.15
+			_bounce_tween = create_tween()
+			_bounce_tween.tween_property(_money_container, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _refresh_popularity(ratio: float) -> void:

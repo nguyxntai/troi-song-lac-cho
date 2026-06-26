@@ -1,6 +1,7 @@
 extends Node3D
 
 const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
+const LOGO_TEXTURE: Texture2D = preload("res://assets/UI/LogoGame.png")
 
 @export var camera_path: NodePath = ^"MainCamera"
 @export var nam_chef_path: NodePath = ^"NamChef"
@@ -12,7 +13,7 @@ const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
 @export var exit_button_path: NodePath = ^"MenuUI/MenuButtons/ExitButton"
 @export var menu_buttons_path: NodePath = ^"MenuUI/MenuButtons"
 @export_file("*.tscn") var gameplay_scene_path: String = "res://scenes/comic_intro.tscn"
-@export_file("*.tscn") var direct_gameplay_scene_path: String = "res://scenes/chapter1.tscn"
+var direct_gameplay_scene_path: String = ""
 @export var intro_duration: float = 4.2
 @export var menu_fade_duration: float = 0.8
 @export_range(0.5, 1.2, 0.05) var button_idle_scale: float = 0.8
@@ -35,6 +36,7 @@ var _button_base_sizes: Dictionary = {}
 var _is_loading_gameplay := false
 var _loading_canvas: CanvasLayer
 var _loading_ring: Control
+var _logo_rect: TextureRect
 
 func _ready() -> void:
 	AudioManager.stop_river_loop()
@@ -54,6 +56,7 @@ func _ready() -> void:
 		push_warning("Menu cinematic needs MainCamera and NamChef in the menu scene.")
 		return
 
+	_prepare_logo()
 	_prepare_menu_visibility()
 	_prepare_nam_chef()
 	_prepare_camera_intro()
@@ -64,6 +67,27 @@ func _process(_delta: float) -> void:
 	_look_at_nam_chef()
 	if _is_loading_gameplay:
 		_poll_gameplay_load()
+
+
+func _prepare_logo() -> void:
+	var menu_ui = get_node_or_null("MenuUI")
+	if menu_ui == null:
+		return
+	
+	_logo_rect = TextureRect.new()
+	_logo_rect.name = "LogoRect"
+	_logo_rect.texture = LOGO_TEXTURE
+	_logo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_logo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_logo_rect.texture_filter = Control.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	
+	_logo_rect.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_logo_rect.offset_left = -520.0
+	_logo_rect.offset_top = 20.0
+	_logo_rect.offset_right = -20.0
+	_logo_rect.offset_bottom = 270.0
+	
+	menu_ui.add_child(_logo_rect)
 
 
 func _prepare_nam_chef() -> void:
@@ -230,6 +254,8 @@ func _recenter_menu_buttons() -> void:
 func _prepare_menu_visibility() -> void:
 	if _menu_buttons != null:
 		_menu_buttons.modulate.a = 0.0
+	if _logo_rect != null:
+		_logo_rect.modulate.a = 0.0
 
 	for button_path in _button_paths:
 		var button := get_node_or_null(button_path) as BaseButton
@@ -241,6 +267,8 @@ func _show_menu_buttons() -> void:
 	if _menu_buttons != null:
 		var fade_tween := create_tween()
 		fade_tween.tween_property(_menu_buttons, "modulate:a", 1.0, menu_fade_duration)
+		if _logo_rect != null:
+			fade_tween.parallel().tween_property(_logo_rect, "modulate:a", 1.0, menu_fade_duration)
 		fade_tween.tween_callback(_enable_menu_buttons)
 	else:
 		_enable_menu_buttons()
@@ -263,7 +291,7 @@ func _on_play_pressed() -> void:
 	AudioManager.stop_menu_music()
 
 	if PauseMenu.has_played_intro:
-		gameplay_scene_path = direct_gameplay_scene_path
+		gameplay_scene_path = "res://scenes/chapter1.tscn" if SaveManager.has_completed_tutorial() else "res://scenes/tutorial.tscn"
 	else:
 		PauseMenu.has_played_intro = true
 
@@ -299,6 +327,7 @@ func _poll_gameplay_load() -> void:
 				_set_menu_buttons_disabled(false)
 				return
 
+			_is_loading_gameplay = false
 			var error: int = get_tree().change_scene_to_packed(packed_scene)
 			if error != OK:
 				push_error("Cannot change to gameplay scene %s. Error: %s" % [gameplay_scene_path, error])

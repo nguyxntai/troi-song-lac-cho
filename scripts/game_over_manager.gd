@@ -1,7 +1,9 @@
 extends CanvasLayer
 class_name GameOverManager
 
-const GAME_OVER_TEXTURE: Texture2D = preload("res://assets/UI/game_over.png")
+const GAME_OVER_TEXTURE: Texture2D = preload("res://assets/UI/UIGameOver.png")
+const GO_BTN_RETRY: Texture2D = preload("res://assets/UI/RetryButtonGameOver.png")
+const GO_BTN_HOME: Texture2D = preload("res://assets/UI/HomeButtonGameOver.png")
 const WIN_BG_TEXTURE: Texture2D = preload("res://assets/UI/win_menu/WinUI.png")
 const WIN_BTN_REPLAY: Texture2D = preload("res://assets/UI/win_menu/ReplayLevel.png")
 const WIN_BTN_CONTINUE: Texture2D = preload("res://assets/UI/win_menu/Continue.png")
@@ -49,6 +51,8 @@ var _is_game_over := false
 var _button_tweens: Dictionary = {}
 
 var _game_over_panel: Control
+var _go_bg: TextureRect
+var _go_btn_container: HBoxContainer
 var _win_panel: Control
 
 var _go_reason_label: Label
@@ -242,7 +246,15 @@ func _update_loading_ring(delta: float) -> void:
 
 
 func _on_continue_pressed() -> void:
-	_show_dev_popup()
+	var current_scene := get_tree().current_scene
+	if current_scene != null and current_scene.scene_file_path.get_file() == "tutorial.tscn":
+		_stop_chapter_music()
+		AudioManager.stop_river_loop()
+		AudioManager.stop_player_walking()
+		get_tree().paused = false
+		get_tree().change_scene_to_file("res://scenes/chapter1.tscn")
+	else:
+		_show_dev_popup()
 
 
 func _on_replay_pressed() -> void:
@@ -321,47 +333,41 @@ func _build_ui() -> void:
 
 	# --- Game Over Panel ---
 	_game_over_panel = Control.new()
+	_game_over_panel.name = "GameOverPanel"
 	_game_over_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_game_over_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_game_over_panel)
-	
-	var go_content := VBoxContainer.new()
-	go_content.set_anchors_preset(Control.PRESET_CENTER)
-	go_content.offset_left = -360.0
-	go_content.offset_top = -250.0
-	go_content.offset_right = 360.0
-	go_content.offset_bottom = 250.0
-	go_content.alignment = BoxContainer.ALIGNMENT_CENTER
-	go_content.add_theme_constant_override("separation", 20)
-	_game_over_panel.add_child(go_content)
 
-	var go_image_area := Control.new()
-	go_image_area.custom_minimum_size = Vector2(621.0, 402.0)
-	go_content.add_child(go_image_area)
+	# Nền ảnh Game Over.
+	_go_bg = TextureRect.new()
+	_go_bg.name = "GameOverBg"
+	_go_bg.texture = GAME_OVER_TEXTURE
+	_go_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_go_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_go_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_game_over_panel.add_child(_go_bg)
 
-	var go_image := TextureRect.new()
-	go_image.texture = GAME_OVER_TEXTURE
-	go_image.set_anchors_preset(Control.PRESET_FULL_RECT)
-	go_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	go_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	go_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	go_image_area.add_child(go_image)
-
-	var reload_icon_button := _create_invisible_icon_button(Vector2(165.0, 205.0), Vector2(150.0, 150.0))
-	reload_icon_button.pressed.connect(restart_current_scene)
-	go_image_area.add_child(reload_icon_button)
-
-	var home_icon_button := _create_invisible_icon_button(Vector2(330.0, 205.0), Vector2(150.0, 150.0))
-	home_icon_button.pressed.connect(go_to_menu)
-	go_image_area.add_child(home_icon_button)
-
+	# Reason label — chồng lên vùng giấy giữa ảnh nền.
 	_go_reason_label = Label.new()
+	_go_reason_label.name = "GameOverReason"
 	_go_reason_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_go_reason_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_go_reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_go_reason_label.add_theme_font_size_override("font_size", 30)
-	_go_reason_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82, 1.0))
-	_go_reason_label.add_theme_color_override("font_outline_color", Color(0.22, 0.07, 0.03, 1.0))
-	_go_reason_label.add_theme_constant_override("outline_size", 8)
-	go_content.add_child(_go_reason_label)
+	_go_reason_label.add_theme_font_size_override("font_size", 24)
+	_go_reason_label.add_theme_color_override("font_color", Color(0.35, 0.18, 0.05, 1.0))
+	_go_reason_label.add_theme_color_override("font_outline_color", Color(0.95, 0.85, 0.65, 1.0))
+	_go_reason_label.add_theme_constant_override("outline_size", 3)
+	_go_bg.add_child(_go_reason_label)
+
+	# Container nút bấm nằm ngang, bên trong ảnh nền Game Over.
+	_go_btn_container = HBoxContainer.new()
+	_go_btn_container.name = "GameOverButtons"
+	_go_btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_go_btn_container.add_theme_constant_override("separation", 20)
+	_go_bg.add_child(_go_btn_container)
+
+	_create_game_over_button(GO_BTN_RETRY, restart_current_scene, _go_btn_container)
+	_create_game_over_button(GO_BTN_HOME, go_to_menu, _go_btn_container)
 
 
 	# --- Win Panel ---
@@ -442,19 +448,25 @@ func _build_ui() -> void:
 	dev_vbox.add_child(dev_close_btn)
 
 
-func _create_invisible_icon_button(position: Vector2, size: Vector2) -> Button:
-	var button := Button.new()
-	button.position = position
-	button.size = size
-	button.focus_mode = Control.FOCUS_NONE
-	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	button.flat = true
-	var empty_style := StyleBoxFlat.new()
-	empty_style.bg_color = Color.TRANSPARENT
-	button.add_theme_stylebox_override("normal", empty_style)
-	button.add_theme_stylebox_override("hover", empty_style)
-	button.add_theme_stylebox_override("pressed", empty_style)
-	return button
+func _create_game_over_button(tex: Texture2D, callback: Callable, parent: Control) -> TextureButton:
+	var btn := TextureButton.new()
+	btn.texture_normal = tex
+	btn.texture_hover = tex
+	btn.texture_pressed = tex
+	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn.ignore_texture_size = true
+
+	btn.pressed.connect(callback)
+
+	var hover_in := Callable(self, "_animate_button_scale").bind(btn, button_hover_scale)
+	var hover_out := Callable(self, "_animate_button_scale").bind(btn, 1.0)
+	btn.mouse_entered.connect(hover_in)
+	btn.mouse_exited.connect(hover_out)
+	btn.focus_entered.connect(hover_in)
+	btn.focus_exited.connect(hover_out)
+
+	parent.add_child(btn)
+	return btn
 
 
 func _create_win_button(tex: Texture2D, callback: Callable, parent: Control) -> TextureButton:
@@ -494,39 +506,73 @@ func _animate_button_scale(btn: TextureButton, target_scale: float) -> void:
 
 
 func _relayout() -> void:
+	var vp_size := get_viewport().get_visible_rect().size
+
+	# --- Relayout Game Over Panel ---
+	if _go_bg and GAME_OVER_TEXTURE:
+		var go_base := GAME_OVER_TEXTURE.get_size()  # 577×433
+		var go_scale := minf(vp_size.x / go_base.x * 0.75, vp_size.y / go_base.y * 0.75)
+		var go_size := go_base * go_scale
+		_go_bg.size = go_size
+		_go_bg.position = Vector2((vp_size.x - go_size.x) * 0.5, (vp_size.y - go_size.y) * 0.5)
+
+		# Reason label — vùng giấy giữa ảnh. Mở rộng vùng text.
+		_go_reason_label.position = Vector2(go_size.x * 0.15, go_size.y * 0.28)
+		_go_reason_label.size = Vector2(go_size.x * 0.70, go_size.y * 0.32)
+
+		# Buttons bên trong ảnh nền, dời lên một chút (~63% dọc) để có chỗ cho nút to hơn nữa.
+		var btn_height := go_size.y * 0.21
+		var btn_aspect := 612.0 / 408.0  # Retry/Home button aspect
+		var btn_width := btn_height * btn_aspect
+		var btns_total_w := btn_width * 2.0 + 20.0
+		_go_btn_container.position = Vector2(
+			(go_size.x - btns_total_w) * 0.5,
+			go_size.y * 0.63
+		)
+		_go_btn_container.size = Vector2(btns_total_w, btn_height)
+
+		for btn_node in _go_btn_container.get_children():
+			var t_btn := btn_node as TextureButton
+			if not t_btn:
+				continue
+			t_btn.custom_minimum_size = Vector2(btn_width, btn_height)
+			t_btn.size = t_btn.custom_minimum_size
+			t_btn.scale = Vector2.ONE
+			t_btn.pivot_offset = t_btn.custom_minimum_size * 0.5
+
+	# --- Relayout Win Panel ---
 	if not _win_panel:
 		return
-		
-	var vp_size := get_viewport().get_visible_rect().size
+
 	var win_bg := _win_panel.get_node_or_null("WinBg") as TextureRect
 	if not win_bg: return
-	
+
 	var base_bg_size := Vector2(1000.0, 750.0)
 	if WIN_BG_TEXTURE:
 		base_bg_size = WIN_BG_TEXTURE.get_size()
-		
+
 	var scale_factor := minf(vp_size.x / base_bg_size.x * 0.8, vp_size.y / base_bg_size.y * 0.9)
 	var final_bg_size := base_bg_size * scale_factor
-	
+
 	win_bg.size = final_bg_size
 	win_bg.position = (vp_size - final_bg_size) * 0.5
-	
+
 	var win_content := win_bg.get_node("WinContent") as Control
-	
+
 	win_content.size = Vector2(final_bg_size.x * 0.56, final_bg_size.y * 0.56)
 	win_content.position = Vector2(final_bg_size.x * 0.22, final_bg_size.y * 0.30)
 	_win_reason_label.custom_minimum_size = Vector2(win_content.size.x, final_bg_size.y * 0.13)
-	
+
 	var btn_container := win_content.get_child(1) as Container
-	var btn_height := final_bg_size.y * 0.095
+	var btn_h := final_bg_size.y * 0.095
 	for btn in btn_container.get_children():
 		var t_btn := btn as TextureButton
 		if not t_btn: continue
 		var aspect := 3.0
 		if t_btn.texture_normal:
 			aspect = t_btn.texture_normal.get_size().x / t_btn.texture_normal.get_size().y
-		
-		t_btn.custom_minimum_size = Vector2(btn_height * aspect, btn_height)
+
+		t_btn.custom_minimum_size = Vector2(btn_h * aspect, btn_h)
 		t_btn.size = t_btn.custom_minimum_size
 		t_btn.scale = Vector2.ONE
 		t_btn.pivot_offset = t_btn.custom_minimum_size * 0.5

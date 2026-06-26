@@ -36,6 +36,8 @@ var combo_count: int = 0
 var generous_remaining: int = 0
 var popularity: float = 0.0
 
+var is_tutorial_locked: bool = false
+
 ## Hệ số thu nhập do sự kiện (vd: đoàn du lịch x2). Nhiều sự kiện nhân dồn.
 var earnings_multiplier: float = 1.0
 
