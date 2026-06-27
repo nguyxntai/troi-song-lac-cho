@@ -35,8 +35,8 @@ const EFFECT_BOKHO: Texture2D = preload("res://assets/UI/bokho_effect.png")
 @export var show_stock_counter: bool = false
 @export var marker_offset: Vector3 = Vector3.ZERO
 @export var marker_size: Vector2 = Vector2(0.65, 0.65)
-@export var prompt_offset: Vector3 = Vector3(0.0, 1.15, 0.0)
-@export var stock_label_offset: Vector3 = Vector3(0.0, 1.55, 0.0)
+@export var prompt_offset: Vector3 = Vector3(0.0, 0.9, 0.0)
+@export var stock_label_offset: Vector3 = Vector3(0.0, 1.15, 0.0)
 @export var interact_area_offset: Vector3 = Vector3(0.0, 0.7, 0.0)
 @export var interact_area_size: Vector3 = Vector3(1.15, 1.4, 1.15)
 

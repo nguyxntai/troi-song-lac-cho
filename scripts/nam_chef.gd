@@ -73,7 +73,7 @@ func _physics_process(delta: float) -> void:
 	var input_dir := Vector2.ZERO
 	if not GameManager.is_tutorial_locked:
 		input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction := Vector3(input_dir.x, 0, input_dir.y).normalized()
+	var direction := _get_camera_relative_direction(input_dir)
 	var is_carrying: bool = _is_carrying_item()
 	var current_move_speed: float = MOVE_SPEED * (CARRY_MOVE_SPEED_MULTIPLIER if is_carrying else 1.0)
 	AudioManager.set_player_walking(direction != Vector3.ZERO and is_on_floor())
@@ -122,6 +122,34 @@ func _physics_process(delta: float) -> void:
 
 func _is_carrying_item() -> bool:
 	return hand_slot != null and hand_slot.get_child_count() > 0
+
+
+func _get_camera_relative_direction(input_dir: Vector2) -> Vector3:
+	if input_dir == Vector2.ZERO:
+		return Vector3.ZERO
+
+	var active_camera: Camera3D = get_viewport().get_camera_3d()
+	if active_camera == null:
+		return Vector3(input_dir.x, 0.0, -input_dir.y).normalized()
+
+	var camera_forward := Vector3.ZERO
+	var camera_right := Vector3.ZERO
+
+	if active_camera.has_method("get_flat_forward") and active_camera.has_method("get_flat_right"):
+		camera_forward = active_camera.call("get_flat_forward")
+		camera_right = active_camera.call("get_flat_right")
+	else:
+		camera_forward = -active_camera.global_basis.z
+		camera_right = active_camera.global_basis.x
+		camera_forward.y = 0.0
+		camera_right.y = 0.0
+
+	if camera_forward.length_squared() <= 0.0001 or camera_right.length_squared() <= 0.0001:
+		return Vector3(input_dir.x, 0.0, -input_dir.y).normalized()
+
+	camera_forward = camera_forward.normalized()
+	camera_right = camera_right.normalized()
+	return (camera_right * input_dir.x - camera_forward * input_dir.y).normalized()
 
 
 func _handle_drop_and_slip(delta: float, is_carrying: bool, is_moving: bool) -> void:

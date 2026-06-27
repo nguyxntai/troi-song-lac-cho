@@ -186,7 +186,7 @@ func _setup_interact_visuals() -> void:
 	_interact_prompt.name = "InteractPrompt"
 	_interact_prompt.texture = INTERACT_BUTTON_TEXTURE
 	_interact_prompt.pixel_size = 0.0007
-	_interact_prompt.position = Vector3(0.0, 1.9, 0.0)
+	_interact_prompt.position = Vector3(0.0, 1.45, 0.0)
 	_interact_prompt.visible = false
 	_interact_prompt.set("billboard", 1)
 	_interact_prompt.set("no_depth_test", true)
@@ -196,7 +196,7 @@ func _setup_interact_visuals() -> void:
 func _setup_patience_bar() -> void:
 	_patience_bar_root = Node3D.new()
 	_patience_bar_root.name = "PatienceBar"
-	_patience_bar_root.position = Vector3(0.0, 2.7, 0.0)
+	_patience_bar_root.position = Vector3(0.0, 2.05, 0.0)
 	_patience_bar_root.visible = false
 	add_child(_patience_bar_root)
 
@@ -231,7 +231,7 @@ func _setup_patience_bar() -> void:
 func _setup_order_visuals() -> void:
 	_order_sprite = Sprite3D.new()
 	_order_sprite.name = "OrderSprite"
-	_order_sprite.position = Vector3(0.0, 3.2, 0.0)
+	_order_sprite.position = Vector3(0.0, 2.3, 0.0)
 	_order_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_order_sprite.no_depth_test = true
 	_order_sprite.render_priority = 100
@@ -241,7 +241,7 @@ func _setup_order_visuals() -> void:
 
 	_feedback_sprite = Sprite3D.new()
 	_feedback_sprite.name = "OrderFeedbackSprite"
-	_feedback_sprite.position = Vector3(0.0, 3.25, 0.0)
+	_feedback_sprite.position = Vector3(0.0, 2.35, 0.0)
 	_feedback_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_feedback_sprite.no_depth_test = true
 	_feedback_sprite.render_priority = 100

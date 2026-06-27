@@ -15,8 +15,8 @@ const STORED_SCALE_META := "buffer_stored_scale"
 @export var slot_visual_scale: Vector3 = Vector3(0.22, 0.22, 0.22)
 @export var interact_area_offset: Vector3 = Vector3(0.0, 0.7, 0.0)
 @export var interact_area_size: Vector3 = Vector3(1.05, 1.4, 1.05)
-@export var prompt_offset: Vector3 = Vector3(0.0, 1.3, 0.0)
-@export var label_offset: Vector3 = Vector3(0.0, 0.7, 0.0)
+@export var prompt_offset: Vector3 = Vector3(0.0, 0.95, 0.0)
+@export var label_offset: Vector3 = Vector3(0.0, 0.5, 0.0)
 @export var show_slot_surface: bool = false
 
 var _player_in_range: Node3D

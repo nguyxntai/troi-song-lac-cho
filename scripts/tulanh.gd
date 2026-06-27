@@ -19,7 +19,7 @@ const EFFECT_SAXI: Texture2D = preload("res://assets/UI/saxi_effect.png")
 @export var xa_xi_table_local_rotation: Vector3 = Vector3(0.0, 90.0, 0.0)
 @export var xa_xi_table_local_scale: Vector3 = Vector3(0.32, 0.32, 0.32)
 @export var interact_action: StringName = &"interact"
-@export var prompt_offset: Vector3 = Vector3(0.0, 1.35, 0.0)
+@export var prompt_offset: Vector3 = Vector3(0.0, 0.95, 0.0)
 @export_range(0.2, 3.0, 0.05) var interact_distance: float = 1.1
 
 var player_in_range: Node3D = null

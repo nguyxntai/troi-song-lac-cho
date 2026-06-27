@@ -197,7 +197,7 @@ func _spawn_splash() -> void:
 func _build_decay_bar() -> void:
 	_patience_root = Node3D.new()
 	_patience_root.name = "DecayBar"
-	_patience_root.position = Vector3(0.0, 0.5, 0.0)
+	_patience_root.position = Vector3(0.0, 0.32, 0.0)
 	_patience_root.visible = false
 	add_child(_patience_root)
 
@@ -237,7 +237,7 @@ func _build_prompt() -> void:
 	_prompt.name = "RescuePrompt"
 	_prompt.texture = INTERACT_BUTTON_TEXTURE
 	_prompt.pixel_size = 0.0007
-	_prompt.position = Vector3(0.0, 0.75, 0.0)
+	_prompt.position = Vector3(0.0, 0.48, 0.0)
 	_prompt.visible = false
 	_prompt.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_prompt.no_depth_test = true
