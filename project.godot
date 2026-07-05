@@ -26,6 +26,12 @@ ScoreManager="*res://scripts/systems/score_manager.gd"
 Juice="*res://scripts/systems/juice.gd"
 WaterSystem="*res://scripts/systems/water_system.gd"
 
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+
 [input]
 
 ui_left={

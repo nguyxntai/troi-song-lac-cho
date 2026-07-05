@@ -16,6 +16,8 @@ var _pitch: float = deg_to_rad(8.0)
 
 
 func _ready() -> void:
+	# Xử lý chuột ngay cả khi game tạm dừng (để mở khoá con trỏ cho UI).
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_target = get_node_or_null(target_path)
 	if _target == null:
 		printerr("CameraFollow: Khong tim thay target '", target_path, "'!")
@@ -28,7 +30,21 @@ func _ready() -> void:
 	look_at(_target.global_position + look_offset)
 
 
+func _exit_tree() -> void:
+	# Rời màn chơi (về menu...) thì luôn trả con trỏ về hiển thị.
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## Quy tắc chuột thống nhất: game tạm dừng (mọi UI: ESC / thắng / thua / kết quả /
+## shop / hội thoại) -> hiện con trỏ để bấm; đang chơi -> khoá để xoay camera.
+func _process(_delta: float) -> void:
+	var desired: int = Input.MOUSE_MODE_VISIBLE if get_tree().paused else Input.MOUSE_MODE_CAPTURED
+	if Input.mouse_mode != desired:
+		Input.mouse_mode = desired
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	# Chỉ xoay camera khi đang chơi (con trỏ đang bị khoá).
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= deg_to_rad(event.relative.x * mouse_sensitivity)
 		_pitch = clamp(
@@ -36,14 +52,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			deg_to_rad(min_pitch_degrees),
 			deg_to_rad(max_pitch_degrees)
 		)
-	elif event.is_action_pressed("ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 func _physics_process(delta: float) -> void:
-	if _target == null:
+	if _target == null or get_tree().paused:
 		return
 
 	var target_pos: Vector3 = _get_desired_camera_position()

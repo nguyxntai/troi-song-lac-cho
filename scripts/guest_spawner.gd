@@ -42,11 +42,17 @@ var _spawned_count: int = 0
 var _active_guests: Array[Node] = []
 var _spawn_loop_started: bool = false
 var spawn_paused: bool = false
+var _paced_spawn_interval: float = 10.0
 
 
 func _ready() -> void:
 	_rng.randomize()
+	_paced_spawn_interval = maxf(spawn_interval, 0.5)
 	call_deferred("_start_spawn_loop")
+
+
+func set_spawn_pace(interval: float, _phase: int = 0) -> void:
+	_paced_spawn_interval = maxf(interval, 0.5)
 
 
 func spawn_random_guest() -> Node:
@@ -109,7 +115,14 @@ func _start_spawn_loop() -> void:
 		if not repeat_until_full:
 			return
 
-		await get_tree().create_timer(spawn_interval).timeout
+		await get_tree().create_timer(_get_effective_spawn_interval()).timeout
+
+
+func _get_effective_spawn_interval() -> float:
+	# Uy tín cao làm chợ đông nhanh hơn, nhưng giữ khoảng nghỉ tối thiểu để tránh
+	# khách xuất hiện dồn cùng frame và tranh một vị trí.
+	var popularity_speedup: float = lerpf(1.0, 1.28, GameManager.popularity)
+	return maxf(_paced_spawn_interval / popularity_speedup, 2.5)
 
 
 func _build_route(seat: Node3D, table: Node3D) -> Dictionary:

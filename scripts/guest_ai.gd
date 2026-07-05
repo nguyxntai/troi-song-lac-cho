@@ -93,6 +93,8 @@ var is_tutorial_guest := false
 func setup(model_scene: PackedScene, animations: Dictionary, route: Dictionary) -> void:
 	if get_tree().current_scene.scene_file_path.get_file() == "tutorial.tscn":
 		is_tutorial_guest = true
+	else:
+		food_wait_time *= GameManager.get_guest_patience_multiplier()
 
 	var spawn_point: Node3D = route.get("spawn_point") as Node3D
 	var spawn_position: Vector3 = route.get("spawn_position", spawn_point.global_position if spawn_point else Vector3.ZERO)

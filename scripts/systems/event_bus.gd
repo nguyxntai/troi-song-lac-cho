@@ -27,9 +27,14 @@ signal game_event_ended(event_id: String)
 
 # ----- Vòng đời ngày chơi / nâng cấp -----
 signal day_started(day_index: int)
+signal day_phase_changed(phase: int, title: String, spawn_interval: float)
+signal day_completed(day_index: int, is_win: bool)
 signal upgrade_purchased(upgrade_id: String, level: int)
 
 # ----- Tiến trình / điểm số -----
 signal rank_up(rank: int, title: String)
 signal score_changed(day_score: int)
 signal day_results(results: Dictionary)
+
+# ----- Ví chung: mục tiêu tiền của giai đoạn (đóng góp trừ khỏi ví) -----
+signal stage_fund_changed(fund: int, goal: int)

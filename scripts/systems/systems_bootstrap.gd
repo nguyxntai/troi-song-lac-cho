@@ -10,6 +10,7 @@ const WeatherManagerScript := preload("res://scripts/systems/weather_manager.gd"
 const EventManagerScript := preload("res://scripts/systems/event_manager.gd")
 const ResultsScreenScript := preload("res://scripts/systems/results_screen.gd")
 const TutorialManagerScript := preload("res://scripts/systems/tutorial_manager.gd")
+const Chapter1DirectorScript := preload("res://scripts/chapter1_director.gd")
 
 @export var reset_money_on_start: bool = false
 @export var spawn_economy_hud: bool = true
@@ -59,6 +60,9 @@ func _spawn_systems() -> void:
 	# Spawn TutorialManager cho scene tutorial.
 	if _check_is_tutorial():
 		_add_node(host, Node.new(), TutorialManagerScript, "TutorialManager")
+	# Chương 1 (không phải tutorial): HUD trả nợ. Ch2/Ch3 dùng director riêng.
+	elif GameManager.chapter_index == 1:
+		_add_node(host, CanvasLayer.new(), Chapter1DirectorScript, "Chapter1Director")
 
 
 func _check_is_tutorial() -> bool:

@@ -123,7 +123,9 @@ func _try_knock_player_item() -> void:
 	var player: Node = get_tree().current_scene.find_child("NamChef", true, false)
 	if player and player.has_method("drop_carried_item"):
 		if _rng.randf() < 0.6:
-			player.call("drop_carried_item", 0.8)
+			var dropped: bool = bool(player.call("drop_carried_item", 0.8))
+			if dropped and player.has_method("knock_down"):
+				player.call("knock_down")
 
 
 func _boost_boats(mult: float) -> void:

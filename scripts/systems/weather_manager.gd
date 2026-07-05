@@ -77,7 +77,7 @@ func _apply_weather(weather: int, _is_initial: bool) -> void:
 			deviation = 0.35
 			drink_bias = -0.15
 			cooling = 1.1
-			boat_mult = 2.2
+			boat_mult = 1.5
 			light_mult = 0.6
 		_:
 			pass

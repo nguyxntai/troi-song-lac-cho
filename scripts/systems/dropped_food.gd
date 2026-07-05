@@ -1,7 +1,7 @@
 extends Node3D
 
-## Một món đồ ăn đã rớt xuống sông: rơi → nổi (đếm ngược ngấm nước) → chìm mất,
-## hoặc được Nam vớt lại (chất lượng giảm). Tự dựng visual đếm ngược + prompt E.
+## Một món đồ ăn bị làm rớt: rơi → đáp xuống SÀN THUYỀN (thành bẩn) hoặc XUỐNG NƯỚC
+## (bẩn + trôi), có thanh đếm ngược; nhặt/vớt lại được nhưng chất lượng giảm.
 
 const INTERACT_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/e_button.png")
 const GRAVITY := 9.8
@@ -22,6 +22,7 @@ var _data: Dictionary = {}
 var _visual: Node3D
 var _bob_phase: float = 0.0
 var _player: Node3D
+var _on_deck: bool = false
 
 var _patience_root: Node3D
 var _patience_fill: MeshInstance3D
@@ -56,34 +57,64 @@ func _physics_process(delta: float) -> void:
 
 	_velocity.y -= GRAVITY * delta
 	global_position += _velocity * delta
-	if global_position.y <= _water_y:
-		_enter_water()
+
+	# Bắt sàn thuyền/bàn ngay bên dưới (trên mực nước) để đồ KHÔNG xuyên thuyền.
+	var deck_y: float = _probe_ground()
+	if deck_y > _water_y + 0.02 and global_position.y <= deck_y:
+		_settle(true, deck_y)
+	elif global_position.y <= _water_y:
+		_settle(false, _water_y)
 
 
-func _enter_water() -> void:
-	global_position.y = _water_y
+## Raycast xuống tìm mặt rắn (sàn thuyền, bàn) ngay dưới món đồ.
+func _probe_ground() -> float:
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return -INF
+	var from: Vector3 = global_position + Vector3.UP * 0.3
+	var to: Vector3 = Vector3(global_position.x, _water_y - 0.3, global_position.z)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collide_with_areas = false
+	var player: Node3D = _get_player()
+	if player is CollisionObject3D:
+		query.exclude = [(player as CollisionObject3D).get_rid()]
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return -INF
+	return (hit["position"] as Vector3).y
+
+
+## Đáp xuống: on_deck=true là rơi trên sàn thuyền (bẩn), false là rơi xuống nước (bẩn + trôi).
+func _settle(on_deck: bool, land_y: float) -> void:
+	_on_deck = on_deck
+	global_position.y = land_y
 	_state = State.FLOATING
 	_velocity = Vector3.ZERO
 
-	# Ngấm nước: giảm chất lượng.
+	# Làm bẩn: giảm chất lượng.
 	var quality: float = float(_data.get("water_quality", 1.0))
 	quality = clampf(quality - _quality_loss, 0.0, 1.0)
 	_data["water_quality"] = quality
 
-	AudioManager.play_water_splash()
-	_spawn_splash()
 	Juice.shake_small()
-	Juice.popup_text(global_position + Vector3.UP * 0.4, "TÙM!", Color(0.6, 0.85, 1.0), 40, 0.6)
+	if on_deck:
+		Juice.popup_text(global_position + Vector3.UP * 0.4, "BẨN!", Color(0.72, 0.55, 0.32), 40, 0.6)
+	else:
+		AudioManager.play_water_splash()
+		_spawn_splash()
+		Juice.popup_text(global_position + Vector3.UP * 0.4, "TÙM! BẨN!", Color(0.6, 0.8, 0.95), 38, 0.6)
 	if _patience_root:
 		_patience_root.visible = true
 
 
 func _process_floating(delta: float) -> void:
-	_bob_phase += delta * BOB_SPEED
-	global_position.x += DRIFT_SPEED * delta
-	if _visual and is_instance_valid(_visual):
-		_visual.position.y = sin(_bob_phase) * BOB_AMPLITUDE
-		_visual.rotate_y(delta * 0.6)
+	# Trên sàn thì nằm yên; dưới nước thì nhấp nhô & trôi theo dòng.
+	if not _on_deck:
+		_bob_phase += delta * BOB_SPEED
+		global_position.x += DRIFT_SPEED * delta
+		if _visual and is_instance_valid(_visual):
+			_visual.position.y = sin(_bob_phase) * BOB_AMPLITUDE
+			_visual.rotate_y(delta * 0.6)
 
 	_timer = maxf(_timer - delta, 0.0)
 	_update_decay_bar()
@@ -105,6 +136,8 @@ func _update_rescue(_delta: float) -> void:
 
 func _can_rescue() -> bool:
 	if _player == null or not is_instance_valid(_player):
+		return false
+	if _player.has_method("is_knocked_down") and bool(_player.call("is_knocked_down")):
 		return false
 	if global_position.distance_to(_player.global_position) > RESCUE_DISTANCE:
 		return false
@@ -144,8 +177,8 @@ func _rescue() -> void:
 		holder.set_meta(FoodMeta.CARRY_VISUAL, _visual)
 		_visual = null
 
-	Juice.popup_text(global_position + Vector3.UP * 0.6, "VỚT ĐƯỢC!", Color(0.5, 1.0, 0.7), 42, 0.9)
-	Juice.burst(global_position, Color(0.6, 0.9, 1.0), 12, 2.5)
+	Juice.popup_text(global_position + Vector3.UP * 0.6, "NHẶT LÊN!", Color(0.6, 1.0, 0.7), 42, 0.9)
+	Juice.burst(global_position, Color(0.8, 0.7, 0.4), 12, 2.5)
 	EventBus.food_rescued.emit(String(_data.get("food_id", "")), float(_data.get("water_quality", 0.6)))
 	queue_free()
 
@@ -156,13 +189,21 @@ func _begin_sink() -> void:
 		_prompt.visible = false
 	if _patience_root:
 		_patience_root.visible = false
-	Juice.popup_text(global_position + Vector3.UP * 0.4, "Trôi mất...", Color(0.9, 0.4, 0.4), 38, 0.7)
+	Juice.popup_text(global_position + Vector3.UP * 0.4, "Hỏng rồi...", Color(0.9, 0.4, 0.4), 38, 0.7)
 	EventBus.food_lost_in_water.emit(String(_data.get("food_id", "")))
 
 	var tween := create_tween()
-	tween.tween_property(self, "global_position:y", _water_y - 0.6, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	if _visual and is_instance_valid(_visual):
-		tween.parallel().tween_property(_visual, "scale", Vector3.ZERO, 1.1)
+	if _on_deck:
+		# Trên sàn: mờ dần rồi dọn đi (không chìm xuống nước).
+		if _visual and is_instance_valid(_visual):
+			tween.tween_property(_visual, "scale", Vector3.ZERO, 0.6)
+		else:
+			tween.tween_interval(0.6)
+	else:
+		# Dưới nước: chìm mất.
+		tween.tween_property(self, "global_position:y", _water_y - 0.6, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		if _visual and is_instance_valid(_visual):
+			tween.parallel().tween_property(_visual, "scale", Vector3.ZERO, 1.1)
 	tween.tween_callback(queue_free)
 
 

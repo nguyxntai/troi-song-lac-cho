@@ -35,6 +35,8 @@ var _is_transitioning := false
 var _is_finishing := false
 var _is_gameplay_loading := false
 var _is_ready_to_transition := false
+var _ready_packed: PackedScene = null
+var _did_transition := false
 
 
 func _ready() -> void:
@@ -48,10 +50,18 @@ func _ready() -> void:
 	_show_page(0, true)
 	_start_intro()
 	
-	gameplay_scene_path = "res://scenes/chapter1.tscn" if SaveManager.has_completed_tutorial() else "res://scenes/tutorial.tscn"
+	if not SaveManager.has_completed_tutorial():
+		gameplay_scene_path = "res://scenes/tutorial.tscn"
+	elif SaveManager.get_current_chapter() >= 3:
+		gameplay_scene_path = "res://scenes/chapter3.tscn"
+	elif SaveManager.get_current_chapter() == 2:
+		gameplay_scene_path = "res://scenes/chapter2.tscn"
+	else:
+		gameplay_scene_path = "res://scenes/chapter1.tscn"
 
 	_loading_ring.call("set_progress", 0.0)
-	var error: int = ResourceLoader.load_threaded_request(gameplay_scene_path)
+	# use_sub_threads = true: nạp các tài nguyên phụ song song → load nhanh hơn nhiều.
+	var error: int = ResourceLoader.load_threaded_request(gameplay_scene_path, "", true)
 	if error == OK:
 		_is_gameplay_loading = true
 	else:
@@ -155,7 +165,8 @@ func _setup_skip_button() -> void:
 	_skip_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	_skip_button.ignore_texture_size = true
 	_skip_button.tooltip_text = "Skip"
-	_skip_button.pressed.connect(_advance_or_start_game)
+	# Nút Skip bỏ qua TOÀN BỘ intro và vào chơi luôn (không lật từng trang).
+	_skip_button.pressed.connect(_skip_intro)
 	add_child(_skip_button)
 
 
@@ -227,6 +238,13 @@ func _advance_or_start_game() -> void:
 		_go_to_next_page()
 
 
+## Nút Skip: bỏ qua toàn bộ intro, vào thẳng gameplay (scene đã load ngầm sẵn).
+func _skip_intro() -> void:
+	if _is_finishing:
+		return
+	_start_gameplay(true)
+
+
 func _go_to_next_page() -> void:
 	if _is_transitioning or _is_finishing:
 		return
@@ -249,24 +267,26 @@ func _go_to_next_page() -> void:
 	_is_transitioning = false
 
 
-func _start_gameplay() -> void:
+func _start_gameplay(fast: bool = false) -> void:
 	if _is_finishing:
 		return
 	_is_finishing = true
 	_skip_button.disabled = true
 
+	# Nếu scene game đã load xong (nhờ load ngầm lúc cutscene) thì fade rất ngắn.
+	var already_loaded: bool = _ready_packed != null
+	var fade_time: float = 0.16 if (fast or already_loaded) else 0.46
+
 	var exit_tween := create_tween()
 	exit_tween.set_parallel(true)
-	exit_tween.tween_property(_skip_button, "modulate:a", 0.0, 0.18)
-	exit_tween.tween_property(_hint_label, "modulate:a", 0.0, 0.18)
-	exit_tween.tween_property(_page_root, "scale", Vector2.ONE * 1.025, 0.46).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	exit_tween.tween_property(_fade_rect, "color:a", 0.6, 0.46).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	exit_tween.tween_property(_skip_button, "modulate:a", 0.0, minf(0.18, fade_time))
+	exit_tween.tween_property(_hint_label, "modulate:a", 0.0, minf(0.18, fade_time))
+	exit_tween.tween_property(_page_root, "scale", Vector2.ONE * 1.025, fade_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	exit_tween.tween_property(_fade_rect, "color:a", 0.6, fade_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await exit_tween.finished
-	
+
 	_is_ready_to_transition = true
-	
-	if not _is_gameplay_loading:
-		get_tree().change_scene_to_file(gameplay_scene_path)
+	_do_transition()
 
 
 func _poll_gameplay_load() -> void:
@@ -276,25 +296,31 @@ func _poll_gameplay_load() -> void:
 	if not progress.is_empty():
 		_loading_ring.call("set_progress", float(progress[0]))
 
-	if not _is_ready_to_transition:
+	# Khi resource đã load xong thì giữ lại PackedScene sẵn để chuyển ngay khi cần.
+	if _ready_packed == null:
+		if status == ResourceLoader.THREAD_LOAD_LOADED:
+			_ready_packed = ResourceLoader.load_threaded_get(gameplay_scene_path) as PackedScene
+			_loading_ring.call("set_progress", 1.0)
+		elif status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			_is_gameplay_loading = false
+
+	if _is_ready_to_transition:
+		_do_transition()
+
+
+func _do_transition() -> void:
+	if _did_transition:
+		return
+	# Nếu resource vẫn đang tải (skip quá sớm) thì đợi — ring tiếp tục chạy.
+	if _ready_packed == null and _is_gameplay_loading:
 		return
 
-	match status:
-		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-			return
-		ResourceLoader.THREAD_LOAD_LOADED:
-			var scene_resource: Resource = ResourceLoader.load_threaded_get(gameplay_scene_path) as Resource
-			var packed_scene := scene_resource as PackedScene
-			if packed_scene:
-				_is_gameplay_loading = false
-				get_tree().change_scene_to_packed(packed_scene)
-			else:
-				push_error("Loaded gameplay resource is not a PackedScene: %s" % gameplay_scene_path)
-				_is_gameplay_loading = false
-				get_tree().change_scene_to_file(gameplay_scene_path)
-		ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
-			_is_gameplay_loading = false
-			get_tree().change_scene_to_file(gameplay_scene_path)
+	_did_transition = true
+	_is_gameplay_loading = false
+	if _ready_packed != null:
+		get_tree().change_scene_to_packed(_ready_packed)
+	else:
+		get_tree().change_scene_to_file(gameplay_scene_path)
 
 
 func _update_hint(delta: float) -> void:

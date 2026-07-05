@@ -44,6 +44,8 @@ var _spawner: Node                  # GuestSpawner
 var _target_guest: Node             # Khách tutorial đầu tiên
 var _is_dialogue_active: bool = false
 var _post_tutorial_served: int = 0  # Đếm khách phục vụ sau tutorial
+var _is_shutting_down: bool = false
+var _serve_callback: Callable
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -89,6 +91,10 @@ func _process(_delta: float) -> void:
 
 
 func _exit_tree() -> void:
+	_is_shutting_down = true
+	if _serve_callback.is_valid() and EventBus.guest_served.is_connected(_serve_callback):
+		EventBus.guest_served.disconnect(_serve_callback)
+	_serve_callback = Callable()
 	# Dọn dẹp pointer nếu còn tồn tại
 	if is_instance_valid(_pointer) and _pointer.is_inside_tree():
 		_pointer.queue_free()
@@ -210,6 +216,8 @@ func _on_guest_served(_stars: int, _tip: int, _food_id: String) -> void:
 # ══════════════════════════════════════════════════════════════════════
 
 func _serve_sequence() -> void:
+	if _is_shutting_down or not is_inside_tree():
+		return
 	_hide_dialogue()
 	GameManager.is_tutorial_locked = false
 	var bowl_stack := _find_scene_child("ToRongStation")
@@ -217,12 +225,13 @@ func _serve_sequence() -> void:
 	var current_target_node: Node = null
 
 	var served := [false]
-	var on_served = func(stars: int, tip: int, food_id: String):
-		served[0] = true
-	EventBus.guest_served.connect(on_served)
+	_serve_callback = func(_stars: int, _tip: int, _food_id: String):
+		if not _is_shutting_down:
+			served[0] = true
+	EventBus.guest_served.connect(_serve_callback)
 
 	# Lặp chờ cho đến khi khách được phục vụ (Fail-safe: tự động back về bước trước nếu player vứt đồ)
-	while not served[0]:
+	while not served[0] and not _is_shutting_down and is_inside_tree():
 		var new_target: Node = null
 		if _player_has_food_id("bo_kho"):
 			# Đã múc bò kho -> Trỏ vào khách
@@ -241,7 +250,12 @@ func _serve_sequence() -> void:
 		if new_target != current_target_node:
 			current_target_node = new_target
 			_hide_pointer()
-			await get_tree().create_timer(0.2).timeout
+			var tree := get_tree()
+			if tree == null:
+				break
+			await tree.create_timer(0.2).timeout
+			if _is_shutting_down or not is_inside_tree():
+				break
 			if is_instance_valid(current_target_node) and not served[0]:
 				_show_pointer(current_target_node.global_position + Vector3.UP * 2.0)
 		else:
@@ -249,14 +263,23 @@ func _serve_sequence() -> void:
 			if is_instance_valid(current_target_node) and _pointer.visible:
 				_update_pointer_position(current_target_node.global_position + Vector3.UP * 2.0)
 		
-		await get_tree().process_frame
+		var frame_tree := get_tree()
+		if frame_tree == null:
+			break
+		await frame_tree.process_frame
 
-	EventBus.guest_served.disconnect(on_served)
+	if _serve_callback.is_valid() and EventBus.guest_served.is_connected(_serve_callback):
+		EventBus.guest_served.disconnect(_serve_callback)
+	_serve_callback = Callable()
+	if _is_shutting_down or not is_inside_tree():
+		return
 	_hide_pointer()
 
 	# Đợi khách ăn xong và rời đi hoàn toàn (tree_exited)
 	if is_instance_valid(_target_guest):
 		await _target_guest.tree_exited
+		if _is_shutting_down or not is_inside_tree():
+			return
 
 	_step = Step.OUTRO_1
 	_play_step()
@@ -416,7 +439,10 @@ func _hide_pointer() -> void:
 # ══════════════════════════════════════════════════════════════════════
 
 func _player_has_food_id(id: String) -> bool:
-	var player := get_tree().current_scene.find_child("NamChef", true, false)
+	var scene := _get_current_scene()
+	if scene == null:
+		return false
+	var player := scene.find_child("NamChef", true, false)
 	if not player:
 		return false
 	var hand_slot := player.find_child("HandSlot", true, false)
@@ -428,4 +454,14 @@ func _player_has_food_id(id: String) -> bool:
 
 
 func _find_scene_child(pattern: String) -> Node:
-	return get_tree().current_scene.find_child(pattern, true, false)
+	var scene := _get_current_scene()
+	return scene.find_child(pattern, true, false) if scene != null else null
+
+
+func _get_current_scene() -> Node:
+	if _is_shutting_down or not is_inside_tree():
+		return null
+	var tree := get_tree()
+	if tree == null:
+		return null
+	return tree.current_scene

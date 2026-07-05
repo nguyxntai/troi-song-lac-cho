@@ -33,9 +33,13 @@ var _intro_tween: Tween
 var _button_paths: Array[NodePath] = []
 var _button_tweens: Dictionary = {}
 var _button_base_sizes: Dictionary = {}
+var _menu_button_base_size: Vector2 = Vector2(320.0, 142.0)
 var _is_loading_gameplay := false
 var _loading_canvas: CanvasLayer
 var _loading_ring: Control
+var _loading_video: VideoStreamPlayer
+var _video_loading_active := false
+var _confirm_layer: CanvasLayer
 var _logo_rect: TextureRect
 
 func _ready() -> void:
@@ -147,17 +151,178 @@ func _look_at_nam_chef() -> void:
 
 
 func _prepare_menu_buttons() -> void:
+	var layout_reference := get_node_or_null(settings_button_path) as Control
+	if layout_reference != null and layout_reference.custom_minimum_size != Vector2.ZERO:
+		_menu_button_base_size = layout_reference.custom_minimum_size
+
 	_connect_button(play_button_path, _on_play_pressed)
 	_connect_button(settings_button_path, _on_settings_pressed)
 	_connect_button(credits_button_path, _on_credits_pressed)
 	_connect_button(exit_button_path, _on_exit_pressed)
 
+	_build_new_game_button()
+	_configure_continue_button()
+
 	for button_path in _button_paths:
 		var button := get_node_or_null(button_path) as BaseButton
 		if button != null:
+			_normalize_menu_button(button)
 			_prepare_button_hover(button)
 
 	_recenter_menu_buttons()
+
+
+## Tạo nút NEW bằng asset hoàn chỉnh cùng phong cách nút Play.
+## Play = chơi tiếp (giữ tiến trình); NEW = xoá tiến trình và bắt đầu từ tutorial.
+func _build_new_game_button() -> void:
+	if _menu_buttons == null:
+		return
+	var tex: Texture2D = load("res://assets/Menu/New.png")
+	if tex == null:
+		return
+
+	var btn := TextureButton.new()
+	btn.name = "NewGameButton"
+	btn.texture_normal = tex
+	btn.texture_hover = tex
+	btn.texture_pressed = tex
+	btn.custom_minimum_size = _menu_button_base_size
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	btn.ignore_texture_size = true
+	btn.stretch_mode = TextureButton.STRETCH_SCALE
+	btn.focus_mode = Control.FOCUS_NONE
+
+	_menu_buttons.add_child(btn)
+	_menu_buttons.move_child(btn, 1) # ngay dưới nút Play
+	btn.pressed.connect(_on_new_game_pressed)
+	_button_paths.append(get_path_to(btn))
+
+
+func _configure_continue_button() -> void:
+	var continue_button := get_node_or_null(play_button_path) as TextureButton
+	if continue_button == null:
+		return
+	var has_progress: bool = SaveManager.has_started_game()
+	continue_button.visible = has_progress
+	if not has_progress:
+		return
+	var continue_texture := load("res://assets/Menu/Continue.png") as Texture2D
+	if continue_texture == null:
+		push_warning("Cannot load Continue button texture.")
+		return
+	continue_button.texture_normal = continue_texture
+	continue_button.texture_hover = continue_texture
+	continue_button.texture_pressed = continue_texture
+
+
+func _on_new_game_pressed() -> void:
+	AudioManager.play_ui_click()
+	_ensure_confirm_ui()
+	if _confirm_layer != null:
+		_confirm_layer.visible = true
+
+
+## Hộp xác nhận kiểu gỗ (đồng bộ tông ấm miền Tây) thay cho dialog hệ thống.
+func _ensure_confirm_ui() -> void:
+	if _confirm_layer != null:
+		return
+	_confirm_layer = CanvasLayer.new()
+	_confirm_layer.name = "NewGameConfirm"
+	_confirm_layer.layer = 80
+	_confirm_layer.visible = false
+	add_child(_confirm_layer)
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.0, 0.0, 0.62)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_confirm_layer.add_child(dim)
+
+	var box := PanelContainer.new()
+	box.set_anchors_preset(Control.PRESET_CENTER)
+	box.custom_minimum_size = Vector2(560, 300)
+	box.offset_left = -280
+	box.offset_top = -150
+	box.offset_right = 280
+	box.offset_bottom = 150
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.32, 0.20, 0.11, 0.98)
+	style.border_color = Color(0.82, 0.56, 0.28)
+	style.set_border_width_all(5)
+	style.set_corner_radius_all(20)
+	style.set_content_margin_all(24)
+	box.add_theme_stylebox_override("panel", style)
+	_confirm_layer.add_child(box)
+
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 18)
+	box.add_child(vbox)
+
+	var title := _make_confirm_label("NEW", 34, Color(1.0, 0.82, 0.3))
+	vbox.add_child(title)
+	var msg := _make_confirm_label("Xoá toàn bộ tiến trình đã lưu\nvà chơi lại từ đầu?", 22, Color(1.0, 0.95, 0.82))
+	vbox.add_child(msg)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 20)
+	vbox.add_child(row)
+	var yes := _make_confirm_button("Bắt đầu từ đầu", Color(0.72, 0.32, 0.16))
+	yes.pressed.connect(_do_new_game)
+	row.add_child(yes)
+	var no := _make_confirm_button("Huỷ", Color(0.38, 0.42, 0.46))
+	no.pressed.connect(func() -> void:
+		AudioManager.play_ui_click()
+		if _confirm_layer != null:
+			_confirm_layer.visible = false)
+	row.add_child(no)
+
+
+func _make_confirm_label(text: String, size: int, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.0))
+	l.add_theme_constant_override("outline_size", 5)
+	return l
+
+
+func _make_confirm_button(text: String, color: Color) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(210, 58)
+	b.add_theme_font_size_override("font_size", 22)
+	b.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = color
+	normal.set_corner_radius_all(12)
+	normal.set_content_margin_all(8)
+	normal.border_color = Color(1.0, 0.85, 0.5, 0.5)
+	normal.set_border_width_all(2)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = color.lightened(0.15)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = color.darkened(0.15)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	return b
+
+
+func _do_new_game() -> void:
+	AudioManager.play_ui_click()
+	if _confirm_layer != null:
+		_confirm_layer.visible = false
+	SaveManager.reset_all_progress()
+	SaveManager.set_game_started(true)
+	PauseMenu.has_played_intro = false
+	# Đưa về đúng luồng lần đầu: chạy cutscene rồi vào tutorial.
+	gameplay_scene_path = "res://scenes/comic_intro.tscn"
+	_on_play_pressed()
 
 
 func _connect_button(button_path: NodePath, callback: Callable) -> void:
@@ -194,6 +359,18 @@ func _prepare_button_hover(button: BaseButton) -> void:
 		button.focus_exited.connect(hover_out)
 
 
+func _normalize_menu_button(button: BaseButton) -> void:
+	button.custom_minimum_size = _menu_button_base_size
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if button is TextureButton:
+		var texture_button := button as TextureButton
+		texture_button.ignore_texture_size = true
+		# Mọi texture menu dùng chung canvas 1536x1024. Scale đầy Control giúp
+		# kích thước nhìn thấy không còn phụ thuộc padding trong suốt của từng PNG.
+		texture_button.stretch_mode = TextureButton.STRETCH_SCALE
+
+
 func _animate_button_scale(button: BaseButton, target_scale: float) -> void:
 	button.pivot_offset = button.size * 0.5
 
@@ -227,7 +404,7 @@ func _recenter_menu_buttons() -> void:
 
 	for button_path in _button_paths:
 		var button := get_node_or_null(button_path) as Control
-		if button == null:
+		if button == null or not button.visible:
 			continue
 
 		var button_size := button.custom_minimum_size
@@ -290,21 +467,46 @@ func _on_play_pressed() -> void:
 
 	AudioManager.stop_menu_music()
 
-	if PauseMenu.has_played_intro:
+	if SaveManager.has_completed_tutorial() and SaveManager.get_current_chapter() >= 2:
+		gameplay_scene_path = "res://scenes/chapter3.tscn" if SaveManager.get_current_chapter() >= 3 else "res://scenes/chapter2.tscn"
+	elif PauseMenu.has_played_intro:
 		gameplay_scene_path = "res://scenes/chapter1.tscn" if SaveManager.has_completed_tutorial() else "res://scenes/tutorial.tscn"
 	else:
 		PauseMenu.has_played_intro = true
 
 	_is_loading_gameplay = true
+	# Lần vào cutscene (comic) thì không cần video nền; các lần chơi tiếp (load scene
+	# game nặng) mới bật video loading cho đỡ trống màn hình.
+	_video_loading_active = gameplay_scene_path != "res://scenes/comic_intro.tscn"
 	_set_menu_buttons_disabled(true)
 	_show_loading_ring(0.0)
 
-	var error: int = ResourceLoader.load_threaded_request(gameplay_scene_path)
+	# use_sub_threads = true: nạp tài nguyên phụ song song → nhanh hơn.
+	var error: int = ResourceLoader.load_threaded_request(gameplay_scene_path, "", true)
 	if error != OK:
 		push_error("Cannot start threaded loading for %s. Error: %s" % [gameplay_scene_path, error])
 		_is_loading_gameplay = false
 		_hide_loading_ring()
 		_set_menu_buttons_disabled(false)
+		return
+
+	# HEAD-START: nếu đi qua cutscene, nạp NGẦM luôn scene gameplay thật ngay từ lúc
+	# bấm Play, để trong lúc xem/skip cutscene thì scene đã (gần) load xong.
+	if gameplay_scene_path == "res://scenes/comic_intro.tscn":
+		direct_gameplay_scene_path = _resolve_real_gameplay_path()
+		if not direct_gameplay_scene_path.is_empty():
+			ResourceLoader.load_threaded_request(direct_gameplay_scene_path, "", true)
+
+
+## Xác định scene gameplay thật sẽ chơi sau cutscene (khớp logic trong comic_intro).
+func _resolve_real_gameplay_path() -> String:
+	if not SaveManager.has_completed_tutorial():
+		return "res://scenes/tutorial.tscn"
+	if SaveManager.get_current_chapter() >= 3:
+		return "res://scenes/chapter3.tscn"
+	if SaveManager.get_current_chapter() == 2:
+		return "res://scenes/chapter2.tscn"
+	return "res://scenes/chapter1.tscn"
 
 
 func _poll_gameplay_load() -> void:
@@ -356,10 +558,18 @@ func _show_loading_ring(progress: float) -> void:
 	_loading_ring.call("set_progress", progress)
 	_loading_canvas.visible = true
 
+	# Bật video nền loading (nếu có) cho các lần chơi tiếp.
+	if _loading_video != null and _loading_video.stream != null:
+		_loading_video.visible = _video_loading_active
+		if _video_loading_active and not _loading_video.is_playing():
+			_loading_video.play()
+
 
 func _hide_loading_ring() -> void:
 	if _loading_canvas != null:
 		_loading_canvas.visible = false
+	if _loading_video != null and _loading_video.is_playing():
+		_loading_video.stop()
 
 
 func _ensure_loading_ring() -> void:
@@ -370,6 +580,21 @@ func _ensure_loading_ring() -> void:
 	_loading_canvas.name = "LoadingCanvas"
 	_loading_canvas.layer = 50
 	add_child(_loading_canvas)
+
+	# Video nền toàn màn hình (dưới vòng loading). Godot chỉ phát Ogg Theora (.ogv).
+	var video := VideoStreamPlayer.new()
+	video.name = "LoadingVideo"
+	video.stream = load("res://assets/video/loading_loop.ogv")
+	video.expand = true
+	video.set_anchors_preset(Control.PRESET_FULL_RECT)
+	video.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	video.visible = false
+	# Tự lặp lại khi hết clip.
+	video.finished.connect(func() -> void:
+		if is_instance_valid(video) and _loading_canvas.visible and _video_loading_active:
+			video.play())
+	_loading_canvas.add_child(video)
+	_loading_video = video
 
 	var ring := LOADING_RING_SCRIPT.new() as Control
 	ring.name = "LoadingRing"

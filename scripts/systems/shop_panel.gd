@@ -1,12 +1,17 @@
 extends CanvasLayer
 
-## Shop nâng cấp (dựng bằng code). Mở/đóng bằng phím (action "toggle_shop", mặc định B).
-## Tạm dừng game khi mở. Tiêu tiền nâng cấp, lưu vào GameManager.
+signal closed
+
+## Shop nâng cấp cuối ngày (dựng bằng code). ResultsScreen mở shop sau khi thắng;
+## mỗi ngày chỉ được mua một nâng cấp và tiến trình được lưu qua GameManager.
 
 const TOGGLE_ACTION := &"toggle_shop"
 
 # id, tên, mô tả, giá cơ bản, cấp tối đa, bước giá mỗi cấp
 const UPGRADES := [
+	{"id": "move_speed", "name": "Bước chân nhanh", "desc": "+8% tốc độ di chuyển", "cost": 70, "max": 3, "step": 45},
+	{"id": "guest_patience", "name": "Phục vụ thân thiện", "desc": "+15% thời gian khách chờ", "cost": 65, "max": 3, "step": 40},
+	{"id": "bowl_capacity", "name": "Thêm chồng tô", "desc": "+2 tô dùng được mỗi ngày", "cost": 55, "max": 3, "step": 35},
 	{"id": "premium", "name": "Nguyên liệu cao cấp", "desc": "+5$ mỗi món bán ra", "cost": 60, "max": 3, "step": 40},
 	{"id": "tip_boost", "name": "Khéo chiều khách", "desc": "+3 tip mỗi sao", "cost": 50, "max": 3, "step": 35},
 	{"id": "anti_slip", "name": "Ủng chống trượt", "desc": "Giảm tuột tay khi bão", "cost": 80, "max": 1, "step": 0},
@@ -17,6 +22,10 @@ var _panel: Control
 var _money_label: Label
 var _rows: Array = []
 var _is_open: bool = false
+var _is_day_end_mode: bool = false
+var _purchases_remaining: int = 0
+var _unlimited_purchases: bool = false
+var _status_label: Label
 
 
 func _ready() -> void:
@@ -28,20 +37,35 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if InputMap.has_action(TOGGLE_ACTION) and event.is_action_pressed(TOGGLE_ACTION):
-		toggle()
-		get_viewport().set_input_as_handled()
+		if _is_open:
+			set_open(false)
+			get_viewport().set_input_as_handled()
 
 
 func toggle() -> void:
-	set_open(not _is_open)
+	if _is_open:
+		set_open(false)
+
+
+func open_for_day_end(max_purchases: int = 1) -> void:
+	_is_day_end_mode = true
+	_unlimited_purchases = max_purchases < 0
+	_purchases_remaining = maxi(max_purchases, 0)
+	set_open(true)
 
 
 func set_open(open: bool) -> void:
 	_is_open = open
 	_panel.visible = open
-	get_tree().paused = open
+	if open:
+		get_tree().paused = true
+	elif not _is_day_end_mode:
+		get_tree().paused = false
 	if open:
 		_refresh()
+	else:
+		_is_day_end_mode = false
+		closed.emit()
 
 
 func _build_ui() -> void:
@@ -57,11 +81,11 @@ func _build_ui() -> void:
 
 	var box := PanelContainer.new()
 	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.custom_minimum_size = Vector2(540, 470)
-	box.offset_left = -270
-	box.offset_top = -235
-	box.offset_right = 270
-	box.offset_bottom = 235
+	box.custom_minimum_size = Vector2(600, 650)
+	box.offset_left = -300
+	box.offset_top = -325
+	box.offset_right = 300
+	box.offset_bottom = 325
 	_panel.add_child(box)
 
 	var vbox := VBoxContainer.new()
@@ -82,11 +106,26 @@ func _build_ui() -> void:
 	_money_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 	header.add_child(_money_label)
 
+	_status_label = Label.new()
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_label.add_theme_font_size_override("font_size", 16)
+	_status_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5))
+	vbox.add_child(_status_label)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0.0, 470.0)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+
+	var rows_box := VBoxContainer.new()
+	rows_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rows_box.add_theme_constant_override("separation", 8)
+	scroll.add_child(rows_box)
 	for data in UPGRADES:
-		vbox.add_child(_build_row(data))
+		rows_box.add_child(_build_row(data))
 
 	var close_btn := Button.new()
-	close_btn.text = "Đóng (B)"
+	close_btn.text = "Xong"
 	close_btn.custom_minimum_size = Vector2(0, 42)
 	close_btn.pressed.connect(func(): set_open(false))
 	vbox.add_child(close_btn)
@@ -131,6 +170,8 @@ func _cost_for(data: Dictionary, level: int) -> int:
 
 
 func _on_buy(data: Dictionary) -> void:
+	if _is_day_end_mode and not _unlimited_purchases and _purchases_remaining <= 0:
+		return
 	var id: String = String(data["id"])
 	var level: int = GameManager.get_upgrade_level(id)
 	if level >= int(data["max"]):
@@ -138,12 +179,20 @@ func _on_buy(data: Dictionary) -> void:
 	var cost: int = _cost_for(data, level)
 	if GameManager.spend_money(cost):
 		GameManager.set_upgrade_level(id, level + 1)
+		if _is_day_end_mode and not _unlimited_purchases:
+			_purchases_remaining = maxi(_purchases_remaining - 1, 0)
 		_refresh()
 
 
 func _refresh() -> void:
 	if _money_label:
 		_money_label.text = "$%d" % GameManager.money
+	if _status_label:
+		if _unlimited_purchases:
+			_status_label.text = "Mua tuỳ ý — giới hạn là số tiền bạn có"
+		else:
+			_status_label.text = "Chọn 1 nâng cấp cho ngày tiếp theo" if _purchases_remaining > 0 else "Đã chọn nâng cấp cho ngày này"
+	var cap_reached: bool = _is_day_end_mode and not _unlimited_purchases and _purchases_remaining <= 0
 	for row in _rows:
 		var data: Dictionary = row["data"]
 		var id: String = String(data["id"])
@@ -157,4 +206,4 @@ func _refresh() -> void:
 		else:
 			var cost: int = _cost_for(data, level)
 			btn.text = "Mua  $%d" % cost
-			btn.disabled = not GameManager.can_afford(cost)
+			btn.disabled = not GameManager.can_afford(cost) or cap_reached

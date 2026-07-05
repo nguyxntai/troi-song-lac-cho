@@ -89,12 +89,13 @@ func get_medal(score: int) -> int:
 ## Chốt điểm cuối ngày: lưu kỷ lục, trả về dict kết quả cho màn hình tổng kết.
 func finalize(day_index: int) -> Dictionary:
 	var medal: int = get_medal(day_score)
-	var previous_best: int = SaveManager.get_best_score(day_index)
-	var is_record: bool = SaveManager.submit_score(day_index, day_score)
+	var previous_best: int = SaveManager.get_chapter_best_score(GameManager.chapter_index, day_index)
+	var is_record: bool = SaveManager.submit_chapter_score(GameManager.chapter_index, day_index, day_score)
 	SaveManager.save_game()
 
 	var results := {
 		"day_index": day_index,
+		"chapter_index": GameManager.chapter_index,
 		"score": day_score,
 		"medal": medal,
 		"medal_name": String(MEDAL_NAMES.get(medal, "")),

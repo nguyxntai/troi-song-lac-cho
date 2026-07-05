@@ -49,6 +49,10 @@ var _boiling_sfx_player: AudioStreamPlayer3D
 
 
 func _ready() -> void:
+	if station_mode == StationMode.TAKE_EMPTY_BOWL:
+		var capacity_bonus: int = GameManager.get_bowl_capacity_bonus()
+		stock_capacity += capacity_bonus
+		stock_remaining += capacity_bonus
 	stock_capacity = maxi(stock_capacity, 0)
 	stock_remaining = clampi(stock_remaining, 0, stock_capacity)
 	_player = get_tree().current_scene.find_child("NamChef", true, false) as Node3D
