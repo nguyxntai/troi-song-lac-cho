@@ -1,3 +1,4 @@
+@tool
 extends Node3D
 class_name KeepsakeLeaf
 
@@ -19,8 +20,8 @@ const MEMORY_LINES := [
 @export var sprite_pixel_size: float = 0.00018
 ## Ch1–2 nhẫn hơi cũ (ngả nhẹ), Ch3 tươi mới → đóng vòng motif "kết trái".
 @export var aged_tint: Color = Color(0.90, 0.94, 0.82)
-@export var interact_area_size: Vector3 = Vector3(1.3, 1.6, 1.3)
-@export var interact_area_offset: Vector3 = Vector3(0.0, -0.4, 0.0)
+@export var interact_area_size: Vector3 = Vector3(0.9, 1.1, 0.9)
+@export var interact_area_offset: Vector3 = Vector3(0.0, 0.4, 0.0)
 @export var banner_seconds: float = 5.0
 
 var _sprite: Sprite3D
@@ -31,25 +32,42 @@ var _banner_panel: PanelContainer
 var _banner_label: Label
 var _banner_tween: Tween
 var _memory_index: int = 0
-var _bob_time: float = 0.0
-var _base_sprite_y: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("memory_prop")
 	_build_visual()
 	_build_interact_area()
 	_build_prompt()
 
 
-func _process(delta: float) -> void:
-	# Đung đưa nhẹ cho có sức sống.
-	_bob_time += delta
-	if _sprite:
-		_sprite.position.y = _base_sprite_y + sin(_bob_time * 1.6) * 0.03
-
+func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_update_prompt()
-	if _can_interact() and Input.is_action_just_pressed(interact_action):
+	if _can_interact() and _is_closest_prop() and Input.is_action_just_pressed(interact_action):
 		_show_memory()
+
+
+## Khoảng cách tới người chơi nếu đang trong tầm & tương tác được, ngược lại -1.
+func interact_distance() -> float:
+	if not _can_interact():
+		return -1.0
+	return global_position.distance_to(_player_in_range.global_position)
+
+
+## Chỉ vật gần người chơi nhất mới phản hồi E (tránh bấm 1 lần trúng cả 2 vật).
+func _is_closest_prop() -> bool:
+	var my_d: float = global_position.distance_to(_player_in_range.global_position)
+	for other in get_tree().get_nodes_in_group("memory_prop"):
+		if other == self or not other.has_method("interact_distance"):
+			continue
+		var od: float = other.interact_distance()
+		if od < 0.0:
+			continue
+		if od < my_d or (is_equal_approx(od, my_d) and other.get_instance_id() < get_instance_id()):
+			return false
+	return true
 
 
 func _can_interact() -> bool:
@@ -71,13 +89,13 @@ func _build_visual() -> void:
 	_sprite.texture = KEEPSAKE_TEXTURE
 	_sprite.pixel_size = sprite_pixel_size
 	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_sprite.position.y = 0.12
 	_sprite.shaded = false
 	_sprite.double_sided = true
 	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	# Tiến hoá màu: Ch3 tươi mới (trắng gốc), Ch1–2 hơi ngả cũ.
-	_sprite.modulate = Color.WHITE if GameManager.chapter_index >= 3 else aged_tint
+	_sprite.modulate = Color.WHITE if not Engine.is_editor_hint() and GameManager.chapter_index >= 3 else aged_tint
 	add_child(_sprite)
-	_base_sprite_y = _sprite.position.y
 
 
 func _build_interact_area() -> void:
@@ -99,7 +117,7 @@ func _build_prompt() -> void:
 	_prompt.name = "InteractPrompt"
 	_prompt.texture = INTERACT_BUTTON_TEXTURE
 	_prompt.pixel_size = 0.0007
-	_prompt.position = Vector3(0.0, 0.55, 0.0)
+	_prompt.position = Vector3(0.0, 0.45, 0.0)
 	_prompt.visible = false
 	_prompt.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_prompt.no_depth_test = true
@@ -157,13 +175,7 @@ func _ensure_banner() -> void:
 	_banner_panel.offset_right = 420.0
 	_banner_panel.offset_top = -150.0
 	_banner_panel.offset_bottom = -80.0
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.20, 0.12, 0.06, 0.94)
-	style.border_color = Color(0.78, 0.55, 0.28)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(14)
-	style.set_content_margin_all(18)
-	_banner_panel.add_theme_stylebox_override("panel", style)
+	_banner_panel.add_theme_stylebox_override("panel", UIStyle.wood_panel(14, 18, true))
 	_banner_panel.visible = false
 	_banner_layer.add_child(_banner_panel)
 
@@ -171,8 +183,5 @@ func _ensure_banner() -> void:
 	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_banner_label.add_theme_font_size_override("font_size", 24)
-	_banner_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82))
-	_banner_label.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0))
-	_banner_label.add_theme_constant_override("outline_size", 5)
+	UIStyle.style_label(_banner_label, 24, UIStyle.CREAM, 5)
 	_banner_panel.add_child(_banner_label)

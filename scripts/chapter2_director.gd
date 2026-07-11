@@ -213,7 +213,7 @@ func _update_fund_hud() -> void:
 		_health_bar.value = float(health)
 		var fill := _health_bar.get_theme_stylebox("fill") as StyleBoxFlat
 		if fill:
-			fill.bg_color = Color(0.9, 0.3, 0.3) if health <= 36 else Color(0.95, 0.55, 0.35)
+			fill.bg_color = UIStyle.FILL_HEALTH_LOW if health <= 36 else UIStyle.FILL_HEALTH
 
 
 func _build_ui() -> void:
@@ -231,13 +231,7 @@ func _build_fund_hud() -> void:
 	_fund_panel.offset_top = 185.0
 	_fund_panel.offset_right = -24.0
 	_fund_panel.offset_bottom = 355.0
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.border_color = Color(0.78, 0.48, 0.18)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(12)
-	_fund_panel.add_theme_stylebox_override("panel", style)
+	_fund_panel.add_theme_stylebox_override("panel", UIStyle.wood_panel(12, 14))
 	add_child(_fund_panel)
 
 	var content := VBoxContainer.new()
@@ -245,49 +239,34 @@ func _build_fund_hud() -> void:
 	_fund_panel.add_child(content)
 
 	_fund_label = Label.new()
-	_fund_label.add_theme_font_size_override("font_size", 20)
-	_fund_label.add_theme_color_override("font_color", CREAM)
 	_fund_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyle.style_label(_fund_label, UIStyle.FS_BODY, UIStyle.CREAM)
 	content.add_child(_fund_label)
 
 	_fund_bar = ProgressBar.new()
 	_fund_bar.custom_minimum_size = Vector2(330.0, 18.0)
 	_fund_bar.show_percentage = false
-	var bar_bg := StyleBoxFlat.new()
-	bar_bg.bg_color = Color(0.05, 0.03, 0.02, 0.9)
-	bar_bg.set_corner_radius_all(6)
-	var bar_fill := StyleBoxFlat.new()
-	bar_fill.bg_color = FUND_COLOR
-	bar_fill.set_corner_radius_all(6)
-	_fund_bar.add_theme_stylebox_override("background", bar_bg)
-	_fund_bar.add_theme_stylebox_override("fill", bar_fill)
+	_fund_bar.add_theme_stylebox_override("background", UIStyle.bar_track())
+	_fund_bar.add_theme_stylebox_override("fill", UIStyle.bar_fill(UIStyle.FILL_GOOD))
 	content.add_child(_fund_bar)
 
 	_health_label = Label.new()
-	_health_label.add_theme_font_size_override("font_size", 18)
-	_health_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.72))
 	_health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyle.style_label(_health_label, 18, Color(1.0, 0.82, 0.74))
 	content.add_child(_health_label)
 
 	_health_bar = ProgressBar.new()
 	_health_bar.custom_minimum_size = Vector2(330.0, 16.0)
 	_health_bar.show_percentage = false
 	_health_bar.max_value = 100.0
-	var health_bg := StyleBoxFlat.new()
-	health_bg.bg_color = Color(0.05, 0.03, 0.02, 0.9)
-	health_bg.set_corner_radius_all(6)
-	var health_fill := StyleBoxFlat.new()
-	health_fill.bg_color = Color(0.95, 0.55, 0.35)
-	health_fill.set_corner_radius_all(6)
-	_health_bar.add_theme_stylebox_override("background", health_bg)
-	_health_bar.add_theme_stylebox_override("fill", health_fill)
+	_health_bar.add_theme_stylebox_override("background", UIStyle.bar_track())
+	_health_bar.add_theme_stylebox_override("fill", UIStyle.bar_fill(UIStyle.FILL_HEALTH))
 	content.add_child(_health_bar)
 
 	_support_label = Label.new()
 	_support_label.text = "Huyền hỗ trợ: khách kiên nhẫn hơn · cứu 1 lượt giao sai"
-	_support_label.add_theme_font_size_override("font_size", 13)
-	_support_label.add_theme_color_override("font_color", Color(0.65, 1.0, 0.78))
 	_support_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyle.style_label(_support_label, UIStyle.FS_SMALL, Color(0.72, 1.0, 0.82))
 	content.add_child(_support_label)
 
 

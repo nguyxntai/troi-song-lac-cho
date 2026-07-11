@@ -1,0 +1,2 @@
+# Blender source files are kept here for future editing, but Godot only imports
+# the exported OngChu.glb beside this folder at runtime.

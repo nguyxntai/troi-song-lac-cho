@@ -16,13 +16,27 @@ const MENU_MUSIC_TRACKS: Array[AudioStream] = [
 	preload("res://assets/Music/Mekong-Drift-Chill.ogg"),
 	preload("res://assets/Music/Mekong-Drift-EDM.ogg"),
 ]
+## Nhạc "ký ức" êm đềm — nổi lên khi Nam vào vùng kỷ vật sau tủ lạnh.
+const MEMORY_THEME: AudioStream = preload("res://assets/Music/beautiful_dream.mp3")
+
+# Mức âm khi vào/ra chế độ ký ức.
+const RIVER_BASE_DB := -18.0
+const RIVER_DUCK_DB := -34.0
+const MEMORY_LOUD_DB := -3.0
+const MEMORY_SILENT_DB := -40.0
+const MEMORY_FADE_IN := 1.3
+const MEMORY_FADE_OUT := 1.1
 
 var _menu_music_player: AudioStreamPlayer
 var _river_player: AudioStreamPlayer
 var _walking_player: AudioStreamPlayer
+var _memory_player: AudioStreamPlayer
 var _menu_music_should_loop := false
 var _river_should_loop := false
 var _walking_should_loop := false
+var _memory_should_loop := false
+var _memory_tween: Tween
+var _river_duck_tween: Tween
 
 
 func _ready() -> void:
@@ -164,6 +178,13 @@ func _setup_loop_players() -> void:
 	_walking_player.finished.connect(_restart_walking_loop)
 	add_child(_walking_player)
 
+	_memory_player = AudioStreamPlayer.new()
+	_memory_player.name = "MemoryTheme"
+	# PAUSABLE: nhạc ký ức tự im khi mở ESC (game pause), không phát đè menu tạm dừng.
+	_memory_player.process_mode = Node.PROCESS_MODE_PAUSABLE
+	_memory_player.finished.connect(_restart_memory_theme)
+	add_child(_memory_player)
+
 
 func _restart_menu_music() -> void:
 	if _menu_music_should_loop and _menu_music_player != null:
@@ -180,6 +201,52 @@ func _restart_river_loop() -> void:
 func _restart_walking_loop() -> void:
 	if _walking_should_loop and _walking_player != null:
 		_walking_player.play()
+
+
+# ---------- Chế độ "ký ức" (vùng kỷ vật sau tủ lạnh) ----------
+## Vào vùng ký ức: hạ tiếng sông xuống, nổi nhạc êm đềm lên to hơn.
+func enter_memory_mode() -> void:
+	_memory_should_loop = true
+	# Hạ tiếng sông.
+	if _river_player != null:
+		if _river_duck_tween and _river_duck_tween.is_valid():
+			_river_duck_tween.kill()
+		_river_duck_tween = create_tween()
+		_river_duck_tween.tween_property(_river_player, "volume_db", RIVER_DUCK_DB, MEMORY_FADE_IN)
+	# Nổi nhạc ký ức.
+	if _memory_player != null:
+		if _memory_player.stream == null:
+			_memory_player.stream = _duplicate_looped_stream(MEMORY_THEME)
+		if not _memory_player.playing:
+			_memory_player.volume_db = MEMORY_SILENT_DB
+			_memory_player.play()
+		if _memory_tween and _memory_tween.is_valid():
+			_memory_tween.kill()
+		_memory_tween = create_tween()
+		_memory_tween.tween_property(_memory_player, "volume_db", MEMORY_LOUD_DB, MEMORY_FADE_IN)
+
+
+## Rời vùng ký ức: trả tiếng sông về cũ, mờ dần rồi tắt nhạc ký ức.
+func exit_memory_mode() -> void:
+	_memory_should_loop = false
+	if _river_player != null:
+		if _river_duck_tween and _river_duck_tween.is_valid():
+			_river_duck_tween.kill()
+		_river_duck_tween = create_tween()
+		_river_duck_tween.tween_property(_river_player, "volume_db", RIVER_BASE_DB, MEMORY_FADE_OUT)
+	if _memory_player != null:
+		if _memory_tween and _memory_tween.is_valid():
+			_memory_tween.kill()
+		_memory_tween = create_tween()
+		_memory_tween.tween_property(_memory_player, "volume_db", MEMORY_SILENT_DB, MEMORY_FADE_OUT)
+		_memory_tween.tween_callback(func() -> void:
+			if is_instance_valid(_memory_player):
+				_memory_player.stop())
+
+
+func _restart_memory_theme() -> void:
+	if _memory_should_loop and _memory_player != null:
+		_memory_player.play()
 
 
 func _play_one_shot(stream: AudioStream, volume_db: float = 0.0) -> void:

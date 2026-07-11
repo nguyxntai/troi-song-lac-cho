@@ -14,9 +14,10 @@ var _money_bg: TextureRect
 var _money_label: Label
 var _rank_label: Label
 var _combo_label: Label
-var _pop_bg: ColorRect
-var _pop_fill: ColorRect
+var _pop_bar: ProgressBar
+var _pop_fill_style: StyleBoxFlat
 var _pop_label: Label
+var _event_panel: PanelContainer
 var _event_label: Label
 var _money_tween: Tween
 var _bounce_tween: Tween
@@ -110,63 +111,66 @@ func _build_ui() -> void:
 	_combo_label.visible = false
 	root.add_child(_combo_label)
 
-	# Thanh Uy Tín (giữa trên).
-	var pop_root := Control.new()
-	pop_root.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	pop_root.offset_left = -150.0
-	pop_root.offset_top = 18.0
-	pop_root.offset_right = 150.0
-	pop_root.offset_bottom = 54.0
-	root.add_child(pop_root)
+	# Thanh Uy Tín (giữa trên) — khung gỗ đồng bộ.
+	var pop_frame := PanelContainer.new()
+	pop_frame.name = "PopFrame"
+	pop_frame.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	pop_frame.offset_left = -168.0
+	pop_frame.offset_top = 14.0
+	pop_frame.offset_right = 168.0
+	pop_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pop_frame.add_theme_stylebox_override("panel", UIStyle.wood_panel(12, 10))
+	root.add_child(pop_frame)
+
+	var pop_vbox := VBoxContainer.new()
+	pop_vbox.add_theme_constant_override("separation", 4)
+	pop_frame.add_child(pop_vbox)
 
 	var pop_title := Label.new()
 	pop_title.text = "UY TÍN"
-	pop_title.offset_top = -22.0
 	pop_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pop_title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	pop_title.add_theme_font_size_override("font_size", 16)
-	pop_title.add_theme_color_override("font_color", Color(1.0, 0.97, 0.86, 1.0))
-	pop_title.add_theme_color_override("font_outline_color", Color(0.13, 0.06, 0.02, 1.0))
-	pop_title.add_theme_constant_override("outline_size", 5)
-	pop_root.add_child(pop_title)
+	UIStyle.style_title(pop_title, 16)
+	pop_vbox.add_child(pop_title)
 
-	_pop_bg = ColorRect.new()
-	_pop_bg.color = Color(0.05, 0.05, 0.05, 0.7)
-	_pop_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pop_root.add_child(_pop_bg)
+	var pop_bar_holder := Control.new()
+	pop_bar_holder.custom_minimum_size = Vector2(300.0, 22.0)
+	pop_vbox.add_child(pop_bar_holder)
 
-	_pop_fill = ColorRect.new()
-	_pop_fill.color = Color(0.2, 0.85, 0.4, 1.0)
-	_pop_fill.anchor_left = 0.0
-	_pop_fill.anchor_top = 0.0
-	_pop_fill.anchor_right = 0.0
-	_pop_fill.anchor_bottom = 1.0
-	_pop_fill.offset_right = 0.0
-	_pop_bg.add_child(_pop_fill)
+	_pop_bar = ProgressBar.new()
+	_pop_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pop_bar.show_percentage = false
+	_pop_bar.min_value = 0.0
+	_pop_bar.max_value = 100.0
+	_pop_bar.add_theme_stylebox_override("background", UIStyle.bar_track(7))
+	_pop_fill_style = UIStyle.bar_fill(UIStyle.FILL_GOOD, 7)
+	_pop_bar.add_theme_stylebox_override("fill", _pop_fill_style)
+	pop_bar_holder.add_child(_pop_bar)
 
 	_pop_label = Label.new()
 	_pop_label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_pop_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_pop_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_pop_label.add_theme_font_size_override("font_size", 16)
-	_pop_label.add_theme_color_override("font_color", Color.WHITE)
-	_pop_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
-	_pop_label.add_theme_constant_override("outline_size", 4)
-	_pop_bg.add_child(_pop_label)
+	UIStyle.style_label(_pop_label, 15, UIStyle.CREAM, 4)
+	pop_bar_holder.add_child(_pop_label)
 
-	# Banner sự kiện (giữa, dưới uy tín).
+	# Banner sự kiện (giữa, dưới uy tín) — khung gỗ.
+	_event_panel = PanelContainer.new()
+	_event_panel.name = "EventPanel"
+	_event_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_event_panel.offset_left = -300.0
+	_event_panel.offset_top = 78.0
+	_event_panel.offset_right = 300.0
+	_event_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_event_panel.add_theme_stylebox_override("panel", UIStyle.wood_panel(12, 10, true))
+	_event_panel.visible = false
+	root.add_child(_event_panel)
+
 	_event_label = Label.new()
-	_event_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_event_label.offset_left = -260.0
-	_event_label.offset_top = 64.0
-	_event_label.offset_right = 260.0
 	_event_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_event_label.add_theme_font_size_override("font_size", 22)
-	_event_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
-	_event_label.add_theme_color_override("font_outline_color", Color(0.2, 0.05, 0.0, 1.0))
-	_event_label.add_theme_constant_override("outline_size", 6)
-	_event_label.visible = false
-	root.add_child(_event_label)
+	_event_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UIStyle.style_label(_event_label, 22, UIStyle.GOLD_TEXT, 6)
+	_event_panel.add_child(_event_label)
 
 
 func _refresh_money(new_amount: int, delta: int) -> void:
@@ -193,15 +197,15 @@ func _refresh_money(new_amount: int, delta: int) -> void:
 
 
 func _refresh_popularity(ratio: float) -> void:
-	if _pop_fill == null:
+	if _pop_bar == null or _pop_fill_style == null:
 		return
 	ratio = clampf(ratio, 0.0, 1.0)
-	_pop_fill.anchor_right = ratio
+	_pop_bar.value = ratio * 100.0
 	if GameManager.is_market_busy():
-		_pop_fill.color = Color(1.0, 0.6, 0.1, 1.0)
+		_pop_fill_style.bg_color = UIStyle.FILL_BUSY
 		_pop_label.text = "CHỢ ĐÔNG!"
 	else:
-		_pop_fill.color = Color(0.2, 0.85, 0.4, 1.0)
+		_pop_fill_style.bg_color = UIStyle.FILL_GOOD
 		_pop_label.text = "%d%%" % int(round(ratio * 100.0))
 
 
@@ -222,12 +226,12 @@ func _on_event_started(_event_id: String, title: String, duration: float) -> voi
 	if _event_label == null:
 		return
 	_event_label.text = "%s (%ds)" % [title, int(round(duration))]
-	_event_label.visible = true
+	_event_panel.visible = true
 
 
 func _on_event_ended(_event_id: String) -> void:
-	if _event_label:
-		_event_label.visible = false
+	if _event_panel:
+		_event_panel.visible = false
 
 
 func _on_rank_up(_rank: int, title: String) -> void:
@@ -236,12 +240,12 @@ func _on_rank_up(_rank: int, title: String) -> void:
 	# Băng-rôn thăng cấp + pháo giấy ăn mừng.
 	if _event_label:
 		_event_label.text = "THĂNG CẤP: %s!" % title
-		_event_label.visible = true
+		_event_panel.visible = true
 		var t := create_tween()
 		t.tween_interval(3.5)
 		t.tween_callback(func():
-			if is_instance_valid(_event_label):
-				_event_label.visible = false)
+			if is_instance_valid(_event_panel):
+				_event_panel.visible = false)
 	AudioManager.play_combo_ding(8)
 	var player: Node = get_tree().current_scene.find_child("NamChef", true, false)
 	if player is Node3D:

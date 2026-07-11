@@ -1,9 +1,42 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bh28dw3jny0ge"]
 
-[ext_resource type="PackedScene" path="res://scenes/chapter1.tscn" id="1_chapter1"]
-[ext_resource type="Script" path="res://scripts/chapter2_director.gd" id="2_director"]
+[ext_resource type="PackedScene" uid="uid://bum4c8wgkiowd" path="res://scenes/chapter1.tscn" id="1_chapter1"]
+[ext_resource type="Script" uid="uid://cgv4kiald78sp" path="res://scripts/chapter2_director.gd" id="2_director"]
 
-[node name="Chapter2" instance=ExtResource("1_chapter1")]
+[node name="Chapter2" unique_id=1935043298 instance=ExtResource("1_chapter1")]
 
-[node name="Chapter2Director" type="CanvasLayer" parent="."]
+[node name="Water hyacinth w flower" parent="LucBinh/LucBinh01" parent_id_path=PackedInt32Array(114216558) index="0" unique_id=1313580224]
+surface_material_override/1 = null
+surface_material_override/2 = null
+surface_material_override/3 = null
+
+[node name="Water hyacinth w flower" parent="LucBinh/LucBinh04" parent_id_path=PackedInt32Array(1805186193) index="0" unique_id=1533115886]
+surface_material_override/1 = null
+surface_material_override/2 = null
+surface_material_override/3 = null
+
+[node name="Water hyacinth w flower" parent="LucBinh/LucBinh05" parent_id_path=PackedInt32Array(1781526282) index="0" unique_id=1865156349]
+surface_material_override/1 = null
+surface_material_override/2 = null
+surface_material_override/3 = null
+
+[node name="BoatSpawner" parent="." index="14" unique_id=1686879903]
+typing_cameo_char_offset = Vector3(0, 0.42, 0.06)
+typing_cameo_table_offset = Vector3(0, 0.31, -0.3)
+typing_cameo_laptop_offset = Vector3(0, 0.44, 0)
+
+[node name="Chapter2Director" type="CanvasLayer" parent="." index="16" unique_id=980791575]
 script = ExtResource("2_director")
+
+[editable path="KitchenBoat/Ghe"]
+[editable path="KitchenBoat/Tulanh"]
+[editable path="KitchenBoat/Ban1"]
+[editable path="KitchenBoat/Ban2"]
+[editable path="GuestBoat/Tau"]
+[editable path="GuestBoat/Ban1"]
+[editable path="GuestBoat/Ghe1"]
+[editable path="GuestBoat/Ghe2"]
+[editable path="GuestBoat/Ban2"]
+[editable path="GuestBoat/Ghe3"]
+[editable path="GuestBoat/Ghe4"]
+[editable path="NamChef/Nam"]

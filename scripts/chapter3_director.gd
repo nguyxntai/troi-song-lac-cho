@@ -215,13 +215,7 @@ func _build_progress_hud() -> void:
 	_progress_panel.offset_top = 185.0
 	_progress_panel.offset_right = -24.0
 	_progress_panel.offset_bottom = 335.0
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.border_color = Color(0.95, 0.5, 0.3)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(12)
-	_progress_panel.add_theme_stylebox_override("panel", style)
+	_progress_panel.add_theme_stylebox_override("panel", UIStyle.wood_panel(12, 14))
 	add_child(_progress_panel)
 
 	var content := VBoxContainer.new()
@@ -239,9 +233,8 @@ func _build_progress_hud() -> void:
 
 func _make_progress_label() -> Label:
 	var label := Label.new()
-	label.add_theme_font_size_override("font_size", 17)
-	label.add_theme_color_override("font_color", CREAM)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyle.style_label(label, 17, UIStyle.CREAM)
 	return label
 
 
@@ -249,14 +242,8 @@ func _make_progress_bar(color: Color) -> ProgressBar:
 	var bar := ProgressBar.new()
 	bar.custom_minimum_size = Vector2(330.0, 16.0)
 	bar.show_percentage = false
-	var background := StyleBoxFlat.new()
-	background.bg_color = Color(0.05, 0.02, 0.03, 0.9)
-	background.set_corner_radius_all(6)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = color
-	fill.set_corner_radius_all(6)
-	bar.add_theme_stylebox_override("background", background)
-	bar.add_theme_stylebox_override("fill", fill)
+	bar.add_theme_stylebox_override("background", UIStyle.bar_track())
+	bar.add_theme_stylebox_override("fill", UIStyle.bar_fill(color))
 	return bar
 
 

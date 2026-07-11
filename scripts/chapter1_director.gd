@@ -79,13 +79,7 @@ func _build_hud() -> void:
 	_fund_panel.offset_top = 185.0
 	_fund_panel.offset_right = -24.0
 	_fund_panel.offset_bottom = 285.0
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.border_color = Color(0.78, 0.48, 0.18)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(12)
-	_fund_panel.add_theme_stylebox_override("panel", style)
+	_fund_panel.add_theme_stylebox_override("panel", UIStyle.wood_panel(12, 14))
 	add_child(_fund_panel)
 
 	var content := VBoxContainer.new()
@@ -93,29 +87,21 @@ func _build_hud() -> void:
 	_fund_panel.add_child(content)
 
 	_fund_label = Label.new()
-	_fund_label.add_theme_font_size_override("font_size", 20)
-	_fund_label.add_theme_color_override("font_color", CREAM)
 	_fund_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyle.style_label(_fund_label, UIStyle.FS_BODY, UIStyle.CREAM)
 	content.add_child(_fund_label)
 
 	_fund_bar = ProgressBar.new()
 	_fund_bar.custom_minimum_size = Vector2(330.0, 18.0)
 	_fund_bar.show_percentage = false
-	var bar_bg := StyleBoxFlat.new()
-	bar_bg.bg_color = Color(0.05, 0.03, 0.02, 0.9)
-	bar_bg.set_corner_radius_all(6)
-	var bar_fill := StyleBoxFlat.new()
-	bar_fill.bg_color = DEBT_COLOR
-	bar_fill.set_corner_radius_all(6)
-	_fund_bar.add_theme_stylebox_override("background", bar_bg)
-	_fund_bar.add_theme_stylebox_override("fill", bar_fill)
+	_fund_bar.add_theme_stylebox_override("background", UIStyle.bar_track())
+	_fund_bar.add_theme_stylebox_override("fill", UIStyle.bar_fill(DEBT_COLOR))
 	content.add_child(_fund_bar)
 
 	_hint_label = Label.new()
 	_hint_label.text = "Cuối ngày bấm \"Đóng góp\" để trả nợ bằng tiền kiếm được"
-	_hint_label.add_theme_font_size_override("font_size", 13)
-	_hint_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.6))
 	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyle.style_label(_hint_label, UIStyle.FS_SMALL, Color(1.0, 0.84, 0.62))
 	_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(_hint_label)
 

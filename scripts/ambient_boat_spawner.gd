@@ -1,4 +1,7 @@
+@tool
 extends Node3D
+
+const CAMEO_RIG_SCRIPT := preload("res://scripts/cameo_rig.gd")
 
 @export var boat_scene: PackedScene
 @export var boat_scenes: Array[PackedScene] = []
@@ -40,12 +43,55 @@ extends Node3D
 @export var travel_direction: Vector3 = Vector3.RIGHT
 @export var randomize_direction: bool = true
 
+@export_group("Typing Cameo")
+## Gắn ông chú gõ laptop lên chính chiếc ghe được BoatSpawner sinh ra.
+@export var typing_cameo_enabled: bool = false
+## Toạ độ cục bộ theo model ghe02, đặt sát mặt boong; không phụ thuộc scale spawn.
+@export var typing_cameo_local_position: Vector3 = Vector3(0.0, 0.08, 0.0):
+	set(value):
+		typing_cameo_local_position = value
+		_request_editor_preview()
+@export var typing_cameo_yaw: float = 180.0:
+	set(value):
+		typing_cameo_yaw = value
+		_request_editor_preview()
+@export var typing_cameo_char_offset: Vector3 = Vector3(0.0, 0.0, -0.03):
+	set(value):
+		typing_cameo_char_offset = value
+		_request_editor_preview()
+@export var typing_cameo_table_offset: Vector3 = Vector3(0.0, 0.23, -0.3):
+	set(value):
+		typing_cameo_table_offset = value
+		_request_editor_preview()
+@export var typing_cameo_laptop_offset: Vector3 = Vector3(0.0, 0.32, 0.0):
+	set(value):
+		typing_cameo_laptop_offset = value
+		_request_editor_preview()
+
+@export_group("Editor Preview")
+@export var show_typing_cameo_preview: bool = true:
+	set(value):
+		show_typing_cameo_preview = value
+		_request_editor_preview()
+@export var preview_local_position: Vector3 = Vector3(0.0, 0.0, 8.0):
+	set(value):
+		preview_local_position = value
+		_request_editor_preview()
+@export_range(1.0, 10.0, 0.1) var preview_boat_scale: float = 5.0:
+	set(value):
+		preview_boat_scale = value
+		_request_editor_preview()
+
 var _active_boats: Array[Dictionary] = []
 var _spawn_loop_started: bool = false
 var _resolved_spawn_points: Array[Node3D] = []
+var _editor_preview_queued: bool = false
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		_request_editor_preview()
+		return
 	randomize()
 	_resolve_spawn_points()
 	if auto_spawn:
@@ -53,7 +99,35 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	_update_boats(delta)
+
+
+func _request_editor_preview() -> void:
+	if Engine.is_editor_hint() and is_inside_tree() and not _editor_preview_queued:
+		_editor_preview_queued = true
+		call_deferred("_rebuild_editor_preview")
+
+
+func _rebuild_editor_preview() -> void:
+	_editor_preview_queued = false
+	if not Engine.is_editor_hint():
+		return
+	var old_preview := get_node_or_null("TypingCameoPreview")
+	if old_preview != null:
+		old_preview.queue_free()
+	if not show_typing_cameo_preview or boat_scenes.is_empty():
+		return
+
+	var preview_boat := boat_scenes[0].instantiate() as Node3D
+	if preview_boat == null:
+		return
+	preview_boat.name = "TypingCameoPreview"
+	preview_boat.position = preview_local_position
+	preview_boat.scale = Vector3.ONE * preview_boat_scale
+	add_child(preview_boat)
+	_attach_typing_cameo(preview_boat, preview_boat_scale)
 
 
 func _resolve_spawn_points() -> void:
@@ -146,6 +220,7 @@ func spawn_boat() -> Node3D:
 	boat.global_position = spawn_pos
 	boat.rotation_degrees = spawn_rot
 	boat.scale = Vector3.ONE * scale_value
+	_attach_typing_cameo(boat, scale_value)
 
 	_active_boats.append({
 		"node": boat,
@@ -156,6 +231,28 @@ func spawn_boat() -> Node3D:
 		"bob_speed": randf_range(bob_speed_min, bob_speed_max),
 	})
 	return boat
+
+
+func _attach_typing_cameo(boat: Node3D, scale_value: float) -> void:
+	if not typing_cameo_enabled:
+		return
+
+	var cameo := CAMEO_RIG_SCRIPT.new() as Node3D
+	if cameo == null:
+		return
+
+	# Ghe decor được phóng to ngẫu nhiên; bù scale để ông chú, bàn và laptop
+	# luôn giữ đúng kích thước trong thế giới nhưng vẫn đi/lắc cùng ghe.
+	var safe_scale := maxf(absf(scale_value), 0.01)
+	cameo.name = "TypingCameo"
+	cameo.position = typing_cameo_local_position
+	cameo.scale = Vector3.ONE / safe_scale
+	cameo.rotation.y = deg_to_rad(typing_cameo_yaw)
+	cameo.set("include_boat", false)
+	cameo.set("char_offset", typing_cameo_char_offset)
+	cameo.set("table_offset", typing_cameo_table_offset)
+	cameo.set("laptop_offset", typing_cameo_laptop_offset)
+	boat.add_child(cameo)
 
 
 func _start_spawn_loop() -> void:
