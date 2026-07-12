@@ -71,6 +71,9 @@ var slip_chance: float = 0.0          # xác suất/giây tuột tay khi đang c
 var throw_deviation: float = 0.0      # độ lệch hướng khi quăng đồ (mùa bão)
 var drink_demand_bias: float = 0.0    # >0: khách thiên về gọi nước (mùa khô)
 var food_cooling_mult: float = 1.0    # hệ số nguội/ngấm nước nhanh hơn
+## Số lần trượt còn lại trong ngày mưa. Đặt giới hạn để gameplay có bất ngờ
+## nhưng không thể tạo chuỗi rơi đồ vô hạn do RNG xấu.
+var weather_slip_budget: int = 0
 
 # ---------- Tham số sự kiện ----------
 var guest_eat_speed_mult: float = 1.0 # <1: khách ăn chậm (cò đất quấy rối)
@@ -89,7 +92,9 @@ func set_weather_params(weather: int, slip: float, deviation: float, drink_bias:
 	drink_demand_bias = clampf(drink_bias, -1.0, 1.0)
 	food_cooling_mult = maxf(cooling, 0.1)
 	if has_anti_slip():
-		slip_chance *= 0.4
+		# Ủng là nâng cấp phòng thủ rõ rệt: vẫn còn cảm giác mưa trơn,
+		# nhưng gần như không biến thành rơi món vô lý.
+		slip_chance *= 0.35
 
 
 func _ready() -> void:
@@ -134,6 +139,7 @@ func start_session(reset_money: bool = false) -> void:
 	throw_deviation = 0.0
 	drink_demand_bias = 0.0
 	food_cooling_mult = 1.0
+	weather_slip_budget = 0
 	guest_eat_speed_mult = 1.0
 	staff_patience_multiplier = 1.0
 	chapter_advanced_after_last_day = false
@@ -395,6 +401,18 @@ func has_anti_slip() -> bool:
 
 func has_canopy() -> bool:
 	return get_upgrade_level("canopy") > 0
+
+
+func set_weather_slip_budget(amount: int) -> void:
+	weather_slip_budget = maxi(amount, 0)
+
+
+func can_trigger_weather_slip() -> bool:
+	return weather_slip_budget > 0
+
+
+func consume_weather_slip() -> void:
+	weather_slip_budget = maxi(weather_slip_budget - 1, 0)
 
 
 # ---------- Hệ số sự kiện ----------

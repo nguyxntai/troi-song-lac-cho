@@ -55,15 +55,15 @@ const CAMEO_RIG_SCRIPT := preload("res://scripts/cameo_rig.gd")
 	set(value):
 		typing_cameo_yaw = value
 		_request_editor_preview()
-@export var typing_cameo_char_offset: Vector3 = Vector3(0.0, 0.0, -0.03):
+@export var typing_cameo_char_offset: Vector3 = Vector3(0.0, 0.42, 0.06):
 	set(value):
 		typing_cameo_char_offset = value
 		_request_editor_preview()
-@export var typing_cameo_table_offset: Vector3 = Vector3(0.0, 0.23, -0.3):
+@export var typing_cameo_table_offset: Vector3 = Vector3(0.0, 0.31, -0.3):
 	set(value):
 		typing_cameo_table_offset = value
 		_request_editor_preview()
-@export var typing_cameo_laptop_offset: Vector3 = Vector3(0.0, 0.32, 0.0):
+@export var typing_cameo_laptop_offset: Vector3 = Vector3(0.0, 0.44, 0.0):
 	set(value):
 		typing_cameo_laptop_offset = value
 		_request_editor_preview()

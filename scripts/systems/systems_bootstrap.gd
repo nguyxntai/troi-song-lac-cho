@@ -26,6 +26,11 @@ func _ready() -> void:
 	if _is_tutorial:
 		GameManager.enable_weather = false
 		GameManager.enable_random_events = false
+	else:
+		# Tutorial tắt hai cờ này. Vì GameManager là autoload nên phải bật lại
+		# rõ ràng khi chuyển sang chapter, nếu không mưa/sự kiện sẽ bị tắt cả game.
+		GameManager.enable_weather = true
+		GameManager.enable_random_events = true
 
 	# Khởi tạo phiên chơi (giữ tiền & nâng cấp giữa các ngày).
 	GameManager.start_session(reset_money_on_start)

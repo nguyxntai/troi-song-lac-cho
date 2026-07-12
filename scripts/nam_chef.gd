@@ -202,13 +202,14 @@ func _handle_drop_and_slip(delta: float, is_carrying: bool, is_moving: bool) -> 
 
 	# Tuột tay ngẫu nhiên khi mùa bão (slip_chance do WeatherManager set).
 	var slip_chance: float = GameManager.slip_chance if is_moving else GameManager.slip_chance * 0.25
-	if slip_chance <= 0.0:
+	if slip_chance <= 0.0 or not GameManager.can_trigger_weather_slip():
 		return
 	_slip_accumulator += delta
 	if _slip_accumulator >= 0.5:
 		_slip_accumulator = 0.0
 		if randf() < slip_chance * 0.5:
 			if drop_carried_item(0.6):
+				GameManager.consume_weather_slip()
 				knock_down()
 
 
