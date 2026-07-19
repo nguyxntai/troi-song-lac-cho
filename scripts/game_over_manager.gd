@@ -1,13 +1,13 @@
 extends CanvasLayer
 class_name GameOverManager
 
-const GAME_OVER_TEXTURE: Texture2D = preload("res://assets/UI/UIGameOver.png")
-const GO_BTN_RETRY: Texture2D = preload("res://assets/UI/RetryButtonGameOver.png")
-const GO_BTN_HOME: Texture2D = preload("res://assets/UI/HomeButtonGameOver.png")
-const WIN_BG_TEXTURE: Texture2D = preload("res://assets/UI/win_menu/WinUI.png")
-const WIN_BTN_REPLAY: Texture2D = preload("res://assets/UI/win_menu/ReplayLevel.png")
-const WIN_BTN_CONTINUE: Texture2D = preload("res://assets/UI/win_menu/Continue.png")
-const WIN_BTN_HOME: Texture2D = preload("res://assets/UI/win_menu/Home.png")
+const GAME_OVER_TEXTURE: Texture2D = preload("res://assets/UI/UIGameOver_vietnamese.png")
+const GO_BTN_RETRY: Texture2D = preload("res://assets/UI/common_buttons/choi_lai.png")
+const GO_BTN_HOME: Texture2D = preload("res://assets/UI/common_buttons/ve_menu.png")
+const WIN_BG_TEXTURE: Texture2D = preload("res://assets/UI/win_menu/WinUI_vietnamese.png")
+const WIN_BTN_REPLAY: Texture2D = preload("res://assets/UI/common_buttons/choi_lai.png")
+const WIN_BTN_CONTINUE: Texture2D = preload("res://assets/UI/common_buttons/tiep_tuc.png")
+const WIN_BTN_HOME: Texture2D = preload("res://assets/UI/common_buttons/ve_menu.png")
 const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
 
 const CHAPTER_MUSIC_NODE_NAME := "Chapter1Music"
@@ -444,6 +444,7 @@ func _build_ui() -> void:
 	dev_close_btn.text = "OK"
 	dev_close_btn.custom_minimum_size = Vector2(100, 40)
 	dev_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	UIStyle.style_button(dev_close_btn, UIStyle.GOLD, 20)
 	dev_close_btn.pressed.connect(_close_dev_popup)
 	dev_vbox.add_child(dev_close_btn)
 
@@ -522,7 +523,9 @@ func _relayout() -> void:
 
 		# Buttons bên trong ảnh nền, dời lên một chút (~63% dọc) để có chỗ cho nút to hơn nữa.
 		var btn_height := go_size.y * 0.21
-		var btn_aspect := 612.0 / 408.0  # Retry/Home button aspect
+		var btn_aspect := 2.1
+		if GO_BTN_RETRY and GO_BTN_RETRY.get_size().y > 0.0:
+			btn_aspect = GO_BTN_RETRY.get_size().x / GO_BTN_RETRY.get_size().y
 		var btn_width := btn_height * btn_aspect
 		var btns_total_w := btn_width * 2.0 + 20.0
 		_go_btn_container.position = Vector2(

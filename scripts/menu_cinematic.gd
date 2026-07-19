@@ -2,6 +2,7 @@ extends Node3D
 
 const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
 const LOGO_TEXTURE: Texture2D = preload("res://assets/UI/LogoGame.png")
+const SETTINGS_PANEL_SCRIPT: Script = preload("res://scripts/settings_panel.gd")
 
 @export var camera_path: NodePath = ^"MainCamera"
 @export var nam_chef_path: NodePath = ^"NamChef"
@@ -41,6 +42,7 @@ var _loading_video: VideoStreamPlayer
 var _video_loading_active := false
 var _confirm_layer: CanvasLayer
 var _logo_rect: TextureRect
+var _settings_panel: Node
 
 func _ready() -> void:
 	AudioManager.stop_river_loop()
@@ -52,7 +54,6 @@ func _ready() -> void:
 	_button_paths = [
 		play_button_path,
 		settings_button_path,
-		credits_button_path,
 		exit_button_path,
 	]
 
@@ -157,8 +158,10 @@ func _prepare_menu_buttons() -> void:
 
 	_connect_button(play_button_path, _on_play_pressed)
 	_connect_button(settings_button_path, _on_settings_pressed)
-	_connect_button(credits_button_path, _on_credits_pressed)
 	_connect_button(exit_button_path, _on_exit_pressed)
+	_hide_credits_button()
+	_replace_menu_button_texture(settings_button_path, "res://assets/Menu/Settings.png")
+	_replace_menu_button_texture(exit_button_path, "res://assets/Menu/Exit.png")
 
 	_build_new_game_button()
 	_configure_continue_button()
@@ -216,6 +219,26 @@ func _configure_continue_button() -> void:
 	continue_button.texture_pressed = continue_texture
 
 
+## Các TextureButton cũ trong scene dùng AtlasTexture với vùng cắt của ảnh tiếng Anh.
+## Gán Texture2D trực tiếp để ảnh tiếng Việt luôn fit trọn control, không bị cắt méo.
+func _replace_menu_button_texture(button_path: NodePath, texture_path: String) -> void:
+	var button: TextureButton = get_node_or_null(button_path) as TextureButton
+	var texture: Texture2D = load(texture_path) as Texture2D
+	if button == null or texture == null:
+		push_warning("Cannot replace menu texture: %s" % texture_path)
+		return
+	button.texture_normal = texture
+	button.texture_hover = texture
+	button.texture_pressed = texture
+
+
+func _hide_credits_button() -> void:
+	var credits_button: Control = get_node_or_null(credits_button_path) as Control
+	if credits_button != null:
+		credits_button.visible = false
+		credits_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 func _on_new_game_pressed() -> void:
 	AudioManager.play_ui_click()
 	_ensure_confirm_ui()
@@ -246,13 +269,7 @@ func _ensure_confirm_ui() -> void:
 	box.offset_top = -150
 	box.offset_right = 280
 	box.offset_bottom = 150
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.32, 0.20, 0.11, 0.98)
-	style.border_color = Color(0.82, 0.56, 0.28)
-	style.set_border_width_all(5)
-	style.set_corner_radius_all(20)
-	style.set_content_margin_all(24)
-	box.add_theme_stylebox_override("panel", style)
+	box.add_theme_stylebox_override("panel", UIStyle.wood_panel(18, 24, true))
 	_confirm_layer.add_child(box)
 
 	var vbox := VBoxContainer.new()
@@ -260,7 +277,7 @@ func _ensure_confirm_ui() -> void:
 	vbox.add_theme_constant_override("separation", 18)
 	box.add_child(vbox)
 
-	var title := _make_confirm_label("NEW", 34, Color(1.0, 0.82, 0.3))
+	var title := _make_confirm_label("CHƠI MỚI", 34, UIStyle.GOLD_TEXT)
 	vbox.add_child(title)
 	var msg := _make_confirm_label("Xoá toàn bộ tiến trình đã lưu\nvà chơi lại từ đầu?", 22, Color(1.0, 0.95, 0.82))
 	vbox.add_child(msg)
@@ -284,10 +301,7 @@ func _make_confirm_label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	l.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.0))
-	l.add_theme_constant_override("outline_size", 5)
+	UIStyle.style_label(l, size, color)
 	return l
 
 
@@ -295,21 +309,7 @@ func _make_confirm_button(text: String, color: Color) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(210, 58)
-	b.add_theme_font_size_override("font_size", 22)
-	b.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82))
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = color
-	normal.set_corner_radius_all(12)
-	normal.set_content_margin_all(8)
-	normal.border_color = Color(1.0, 0.85, 0.5, 0.5)
-	normal.set_border_width_all(2)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = color.lightened(0.15)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = color.darkened(0.15)
-	b.add_theme_stylebox_override("normal", normal)
-	b.add_theme_stylebox_override("hover", hover)
-	b.add_theme_stylebox_override("pressed", pressed)
+	UIStyle.style_button(b, color, 22)
 	return b
 
 
@@ -613,7 +613,10 @@ func _ensure_loading_ring() -> void:
 
 
 func _on_settings_pressed() -> void:
-	print("Settings menu is not implemented yet.")
+	if _settings_panel == null:
+		_settings_panel = SETTINGS_PANEL_SCRIPT.new() as Node
+		add_child(_settings_panel)
+	_settings_panel.call("open")
 
 
 func _on_credits_pressed() -> void:

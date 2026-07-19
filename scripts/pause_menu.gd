@@ -1,28 +1,40 @@
 extends CanvasLayer
 
-const BG_TEXTURE := preload("res://assets/UI/pause_menu/pause_bg.png")
-const BTN_RESUME := preload("res://assets/UI/pause_menu/btn_resume.png")
-const BTN_SETTINGS := preload("res://assets/UI/pause_menu/btn_settings.png")
-const BTN_MAIN_MENU := preload("res://assets/UI/pause_menu/btn_main_menu.png")
-const BTN_EXIT := preload("res://assets/UI/pause_menu/btn_exit.png")
+const BG_TEXTURE := preload("res://assets/UI/pause_menu/pause_vietnamese_clean.png")
+const BTN_RESUME: Texture2D = preload("res://assets/UI/pause_menu/buttons/resume.png")
+const BTN_SETTINGS: Texture2D = preload("res://assets/UI/pause_menu/buttons/settings.png")
+const BTN_MAIN_MENU: Texture2D = preload("res://assets/UI/pause_menu/buttons/main_menu.png")
+const BTN_EXIT: Texture2D = preload("res://assets/UI/pause_menu/buttons/exit.png")
+
+# Vùng bấm theo tỉ lệ artwork mới: resume, settings, menu, exit.
+const BUTTON_RECTS := [
+	Rect2(0.339, 0.302, 0.322, 0.145),
+	Rect2(0.339, 0.474, 0.322, 0.145),
+	Rect2(0.339, 0.645, 0.322, 0.145),
+	Rect2(0.339, 0.814, 0.322, 0.145),
+]
+const SETTINGS_PANEL_SCRIPT: Script = preload("res://scripts/settings_panel.gd")
 
 const CHAPTER_MUSIC_NODE_NAME := "Chapter1Music"
 
 @export var fade_duration: float = 0.2
 @export var button_hover_scale: float = 1.08
 @export var button_hover_duration: float = 0.1
+@export var button_hover_lift: float = 10.0
 
 var has_played_intro: bool = false
 
 var _overlay: ColorRect
 var _bg_rect: TextureRect
-var _button_container: VBoxContainer
 var _button_tweens: Dictionary = {}
 
+var _buttons: Array[TextureButton] = []
+var _button_base_positions: Dictionary = {}
 var _btn_resume: TextureButton
 var _btn_settings: TextureButton
 var _btn_main_menu: TextureButton
 var _btn_exit: TextureButton
+var _settings_panel: Node
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -48,29 +60,24 @@ func _build_ui() -> void:
 	_bg_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	add_child(_bg_rect)
 	
-	# VBox for Buttons
-	_button_container = VBoxContainer.new()
-	_button_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	_button_container.add_theme_constant_override("separation", 16)
-	_bg_rect.add_child(_button_container)
-	
-	# Create Buttons
-	_btn_resume = _create_button(BTN_RESUME, _on_resume_pressed)
-	_btn_settings = _create_button(BTN_SETTINGS, _on_settings_pressed)
-	_btn_main_menu = _create_button(BTN_MAIN_MENU, _on_main_menu_pressed)
-	_btn_exit = _create_button(BTN_EXIT, _on_exit_pressed)
+	# Nút thật được đặt lên artwork để có thể nhô lên khi hover.
+	_btn_resume = _create_button(BTN_RESUME, "Trở lại trò chơi", _on_resume_pressed)
+	_btn_settings = _create_button(BTN_SETTINGS, "Cài đặt chung", _on_settings_pressed)
+	_btn_main_menu = _create_button(BTN_MAIN_MENU, "Menu chính", _on_main_menu_pressed)
+	_btn_exit = _create_button(BTN_EXIT, "Thoát game", _on_exit_pressed)
 
 
-func _create_button(tex: Texture2D, callback: Callable) -> TextureButton:
+func _create_button(texture: Texture2D, tooltip: String, callback: Callable) -> TextureButton:
 	var btn := TextureButton.new()
-	btn.texture_normal = tex
-	btn.texture_hover = tex
-	btn.texture_pressed = tex
-	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn.texture_normal = texture
+	btn.texture_hover = texture
+	btn.texture_pressed = texture
 	btn.ignore_texture_size = true
-	
-	# Scale setup
-	btn.pivot_offset = btn.size * 0.5
+	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn.tooltip_text = tooltip
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.z_index = 2
 	
 	btn.pressed.connect(callback)
 	
@@ -82,9 +89,9 @@ func _create_button(tex: Texture2D, callback: Callable) -> TextureButton:
 	btn.focus_entered.connect(hover_in)
 	btn.focus_exited.connect(hover_out)
 	
-	_button_container.add_child(btn)
+	_bg_rect.add_child(btn)
+	_buttons.append(btn)
 	return btn
-
 
 func _relayout() -> void:
 	if not _bg_rect:
@@ -103,23 +110,14 @@ func _relayout() -> void:
 	_bg_rect.size = final_bg_size
 	_bg_rect.position = (vp_size - final_bg_size) * 0.5
 	
-	# Place buttons in the blank paper area of the background.
-	_button_container.size = Vector2(final_bg_size.x * 0.52, final_bg_size.y * 0.52)
-	_button_container.position = Vector2(final_bg_size.x * 0.24, final_bg_size.y * 0.33)
-	
-	# Size buttons relative to container
-	var btn_height := final_bg_size.y * 0.095
-	for btn in _button_container.get_children():
-		var t_btn := btn as TextureButton
-		if not t_btn: continue
-		var aspect := 3.0
-		if t_btn.texture_normal:
-			aspect = t_btn.texture_normal.get_size().x / t_btn.texture_normal.get_size().y
-		
-		t_btn.custom_minimum_size = Vector2(btn_height * aspect, btn_height)
-		t_btn.size = t_btn.custom_minimum_size
-		t_btn.scale = Vector2.ONE
-		t_btn.pivot_offset = t_btn.custom_minimum_size * 0.5
+	for index in _buttons.size():
+		var rect: Rect2 = BUTTON_RECTS[index] as Rect2
+		var btn: TextureButton = _buttons[index]
+		btn.position = rect.position * final_bg_size
+		btn.size = rect.size * final_bg_size
+		btn.scale = Vector2.ONE
+		btn.pivot_offset = btn.size * 0.5
+		_button_base_positions[btn] = btn.position
 
 
 func _animate_button_scale(btn: TextureButton, target_scale: float) -> void:
@@ -129,10 +127,21 @@ func _animate_button_scale(btn: TextureButton, target_scale: float) -> void:
 
 	var tween := create_tween()
 	_button_tweens[btn] = tween
+	var base_position: Vector2 = _button_base_positions.get(btn, btn.position)
+	var target_position := base_position
+	if target_scale > 1.0:
+		target_position.y -= button_hover_lift
+	tween.set_parallel(true)
 	tween.tween_property(
 		btn,
 		"scale",
 		Vector2.ONE * target_scale,
+		button_hover_duration
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(
+		btn,
+		"position",
+		target_position,
 		button_hover_duration
 	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -175,7 +184,10 @@ func _on_resume_pressed() -> void:
 
 
 func _on_settings_pressed() -> void:
-	print("Settings menu clicked: Not implemented yet!")
+	if _settings_panel == null:
+		_settings_panel = SETTINGS_PANEL_SCRIPT.new() as Node
+		add_child(_settings_panel)
+	_settings_panel.call("open")
 
 
 func _on_main_menu_pressed() -> void:

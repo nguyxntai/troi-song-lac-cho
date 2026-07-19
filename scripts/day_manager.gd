@@ -77,9 +77,9 @@ func _ready() -> void:
 	_build_hud()
 	_update_hud()
 
-	# Tutorial: thời gian dài hơn, yêu cầu 5 khách tổng cộng (bao gồm khách đầu tiên).
+	# Tutorial: thời gian dài hơn, yêu cầu 3 khách tổng cộng (bao gồm khách đầu tiên).
 	if get_tree().current_scene.scene_file_path.get_file() == "tutorial.tscn":
-		required_customers = 5
+		required_customers = 3
 		day_duration = 600.0
 		_time_left = day_duration
 		_update_hud()

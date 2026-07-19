@@ -1,5 +1,9 @@
 extends Node
 
+const MUSIC_BUS: StringName = &"Music"
+const SFX_BUS: StringName = &"SFX"
+const VOICE_BUS: StringName = &"Voice"
+
 const WATER_SPLASH: AudioStream = preload("res://assets/SFX/alex_jauk-water-splash-147014.ogg")
 const RIVER: AudioStream = preload("res://assets/SFX/dragon-studio-river-sounds-420904.ogg")
 const BOILING_FOOD: AudioStream = preload("res://assets/SFX/freesound_community-boiling-food-81761.ogg")
@@ -31,6 +35,7 @@ var _menu_music_player: AudioStreamPlayer
 var _river_player: AudioStreamPlayer
 var _walking_player: AudioStreamPlayer
 var _memory_player: AudioStreamPlayer
+var _voice_player: AudioStreamPlayer
 var _menu_music_should_loop := false
 var _river_should_loop := false
 var _walking_should_loop := false
@@ -41,10 +46,12 @@ var _river_duck_tween: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ensure_audio_buses()
 	_setup_loop_players()
 	if not get_tree().node_added.is_connected(_on_node_added):
 		get_tree().node_added.connect(_on_node_added)
 	call_deferred("_connect_existing_buttons")
+	call_deferred("_assign_existing_audio_buses")
 
 
 func play_water_splash() -> void:
@@ -149,6 +156,7 @@ func play_boiling_loop(parent: Node) -> AudioStreamPlayer3D:
 	player.name = "BoKhoBoilingSFX"
 	player.stream = _duplicate_looped_stream(BOILING_FOOD)
 	player.volume_db = -10.0
+	player.bus = SFX_BUS
 	player.max_distance = 9.0
 	parent.add_child(player)
 	player.finished.connect(func() -> void:
@@ -163,18 +171,21 @@ func _setup_loop_players() -> void:
 	_menu_music_player = AudioStreamPlayer.new()
 	_menu_music_player.name = "MenuMusic"
 	_menu_music_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_menu_music_player.bus = MUSIC_BUS
 	_menu_music_player.finished.connect(_restart_menu_music)
 	add_child(_menu_music_player)
 
 	_river_player = AudioStreamPlayer.new()
 	_river_player.name = "RiverSFX"
 	_river_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_river_player.bus = SFX_BUS
 	_river_player.finished.connect(_restart_river_loop)
 	add_child(_river_player)
 
 	_walking_player = AudioStreamPlayer.new()
 	_walking_player.name = "WalkingOnWoodSFX"
 	_walking_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_walking_player.bus = SFX_BUS
 	_walking_player.finished.connect(_restart_walking_loop)
 	add_child(_walking_player)
 
@@ -182,8 +193,15 @@ func _setup_loop_players() -> void:
 	_memory_player.name = "MemoryTheme"
 	# PAUSABLE: nhạc ký ức tự im khi mở ESC (game pause), không phát đè menu tạm dừng.
 	_memory_player.process_mode = Node.PROCESS_MODE_PAUSABLE
+	_memory_player.bus = MUSIC_BUS
 	_memory_player.finished.connect(_restart_memory_theme)
 	add_child(_memory_player)
+
+	_voice_player = AudioStreamPlayer.new()
+	_voice_player.name = "VoiceOver"
+	_voice_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_voice_player.bus = VOICE_BUS
+	add_child(_voice_player)
 
 
 func _restart_menu_music() -> void:
@@ -263,10 +281,101 @@ func play_pitched(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.
 	player.process_mode = Node.PROCESS_MODE_ALWAYS
 	player.stream = stream
 	player.volume_db = volume_db
+	player.bus = SFX_BUS
 	player.pitch_scale = clampf(pitch, 0.1, 4.0)
 	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+
+
+func play_voice(stream: AudioStream, volume_db: float = 0.0) -> void:
+	if stream == null or _voice_player == null:
+		return
+	_voice_player.stop()
+	_voice_player.stream = stream
+	_voice_player.volume_db = volume_db
+	_voice_player.play()
+
+
+func play_voice_file(path: String, volume_db: float = 0.0) -> void:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return
+	play_voice(load(path) as AudioStream, volume_db)
+
+
+func stop_voice() -> void:
+	if _voice_player != null:
+		_voice_player.stop()
+
+
+func set_music_volume(value: float) -> void:
+	_set_bus_volume(MUSIC_BUS, value)
+
+
+func set_sfx_volume(value: float) -> void:
+	_set_bus_volume(SFX_BUS, value)
+
+
+func set_voice_volume(value: float) -> void:
+	_set_bus_volume(VOICE_BUS, value)
+
+
+func get_music_volume() -> float:
+	return _get_bus_volume(MUSIC_BUS)
+
+
+func get_sfx_volume() -> float:
+	return _get_bus_volume(SFX_BUS)
+
+
+func get_voice_volume() -> float:
+	return _get_bus_volume(VOICE_BUS)
+
+
+func _ensure_audio_buses() -> void:
+	_ensure_audio_bus(MUSIC_BUS)
+	_ensure_audio_bus(SFX_BUS)
+	_ensure_audio_bus(VOICE_BUS)
+
+
+func _ensure_audio_bus(bus_name: StringName) -> void:
+	if AudioServer.get_bus_index(bus_name) >= 0:
+		return
+	AudioServer.add_bus()
+	var index := AudioServer.bus_count - 1
+	AudioServer.set_bus_name(index, bus_name)
+	AudioServer.set_bus_send(index, &"Master")
+
+
+func _set_bus_volume(bus_name: StringName, value: float) -> void:
+	var index := AudioServer.get_bus_index(bus_name)
+	if index >= 0:
+		AudioServer.set_bus_volume_db(index, linear_to_db(maxf(clampf(value, 0.0, 1.0), 0.001)))
+
+
+func _get_bus_volume(bus_name: StringName) -> float:
+	var index := AudioServer.get_bus_index(bus_name)
+	if index < 0:
+		return 0.8
+	return db_to_linear(AudioServer.get_bus_volume_db(index))
+
+
+func _assign_existing_audio_buses() -> void:
+	_assign_audio_bus_recursive(get_tree().root)
+
+
+func _assign_audio_bus_recursive(node: Node) -> void:
+	_assign_known_audio_bus(node)
+	for child in node.get_children():
+		_assign_audio_bus_recursive(child)
+
+
+func _assign_known_audio_bus(node: Node) -> void:
+	if not (node is AudioStreamPlayer or node is AudioStreamPlayer3D):
+		return
+	var name_lower := node.name.to_lower()
+	if "music" in name_lower or "theme" in name_lower:
+		node.set("bus", MUSIC_BUS)
 
 
 ## Ding combo: cao độ tăng dần theo số combo (rất "đã tai").
@@ -295,6 +404,7 @@ func _set_property_if_exists(object: Object, property_name: String, value: Varia
 
 
 func _on_node_added(node: Node) -> void:
+	_assign_known_audio_bus(node)
 	if node is BaseButton:
 		call_deferred("_connect_button", node)
 

@@ -86,6 +86,7 @@ func _build_ui() -> void:
 	box.offset_top = -325
 	box.offset_right = 300
 	box.offset_bottom = 325
+	box.add_theme_stylebox_override("panel", UIStyle.wood_panel(18, 20, true))
 	_panel.add_child(box)
 
 	var vbox := VBoxContainer.new()
@@ -97,19 +98,17 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "CỬA HÀNG NÂNG CẤP"
-	title.add_theme_font_size_override("font_size", 28)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UIStyle.style_title(title, 28)
 	header.add_child(title)
 
 	_money_label = Label.new()
-	_money_label.add_theme_font_size_override("font_size", 24)
-	_money_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	UIStyle.style_label(_money_label, 24, UIStyle.GOLD_TEXT)
 	header.add_child(_money_label)
 
 	_status_label = Label.new()
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_label.add_theme_font_size_override("font_size", 16)
-	_status_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5))
+	UIStyle.style_label(_status_label, 16, UIStyle.CREAM_SOFT)
 	vbox.add_child(_status_label)
 
 	var scroll := ScrollContainer.new()
@@ -127,12 +126,14 @@ func _build_ui() -> void:
 	var close_btn := Button.new()
 	close_btn.text = "Xong"
 	close_btn.custom_minimum_size = Vector2(0, 42)
+	UIStyle.style_button(close_btn, UIStyle.GOLD, 20)
 	close_btn.pressed.connect(func(): set_open(false))
 	vbox.add_child(close_btn)
 
 
 func _build_row(data: Dictionary) -> Control:
 	var row := PanelContainer.new()
+	row.add_theme_stylebox_override("panel", UIStyle.wood_panel(10, 12))
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
 	row.add_child(hbox)
@@ -143,21 +144,21 @@ func _build_row(data: Dictionary) -> Control:
 
 	var name_label := Label.new()
 	name_label.text = String(data["name"])
-	name_label.add_theme_font_size_override("font_size", 20)
+	UIStyle.style_label(name_label, 20, UIStyle.GOLD_TEXT)
 	info.add_child(name_label)
 
 	var desc_label := Label.new()
 	desc_label.text = String(data["desc"])
-	desc_label.add_theme_font_size_override("font_size", 14)
-	desc_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	UIStyle.style_label(desc_label, 14, UIStyle.CREAM_SOFT, 3)
 	info.add_child(desc_label)
 
 	var level_label := Label.new()
-	level_label.add_theme_font_size_override("font_size", 14)
+	UIStyle.style_label(level_label, 14, UIStyle.CREAM_SOFT, 3)
 	info.add_child(level_label)
 
 	var buy_btn := Button.new()
 	buy_btn.custom_minimum_size = Vector2(150, 50)
+	UIStyle.style_button(buy_btn, UIStyle.GOLD, 18)
 	buy_btn.pressed.connect(_on_buy.bind(data))
 	hbox.add_child(buy_btn)
 

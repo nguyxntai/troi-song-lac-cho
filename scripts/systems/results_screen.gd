@@ -194,15 +194,7 @@ func _build_ui() -> void:
 	box.offset_top = -270
 	box.offset_right = 260
 	box.offset_bottom = 270
-	var box_style := StyleBoxFlat.new()
-	box_style.bg_color = WOOD_DARK
-	box_style.border_color = WOOD_MID
-	box_style.set_border_width_all(6)
-	box_style.set_corner_radius_all(22)
-	box_style.set_content_margin_all(22)
-	box_style.shadow_color = Color(0, 0, 0, 0.5)
-	box_style.shadow_size = 16
-	box.add_theme_stylebox_override("panel", box_style)
+	box.add_theme_stylebox_override("panel", UIStyle.wood_panel(20, 22, true))
 	_root.add_child(box)
 
 	var vbox := VBoxContainer.new()
@@ -278,10 +270,7 @@ func _build_ui() -> void:
 func _make_label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	l.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.0, 1.0))
-	l.add_theme_constant_override("outline_size", 5)
+	UIStyle.style_label(l, size, color)
 	return l
 
 
@@ -289,19 +278,7 @@ func _make_button(text: String, color: Color) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(145, 54)
-	b.add_theme_font_size_override("font_size", 22)
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = color
-	normal.set_corner_radius_all(12)
-	normal.set_content_margin_all(8)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = color.lightened(0.15)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = color.darkened(0.15)
-	b.add_theme_stylebox_override("normal", normal)
-	b.add_theme_stylebox_override("hover", hover)
-	b.add_theme_stylebox_override("pressed", pressed)
-	b.add_theme_color_override("font_color", CREAM)
+	UIStyle.style_button(b, color, 22)
 	return b
 
 

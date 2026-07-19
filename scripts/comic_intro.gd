@@ -7,9 +7,9 @@ const PAGE_TEXTURES := [
 	"res://assets/comic/chapter1/page_01_full.png",
 	"res://assets/comic/chapter1/page_02_full.png",
 ]
-const SKIP_BUTTON_TEXTURE := "res://assets/comic/chapter1/skip_button.png"
+const SKIP_BUTTON_TEXTURE := "res://assets/UI/common_buttons/bo_qua.png"
 const HINTS := [
-	"Nhấn chuột hoặc Skip để chuyển nhanh qua trang truyện.",
+	"Nhấn chuột hoặc Bỏ qua để chuyển nhanh qua trang truyện.",
 	"Nam đang chuẩn bị trở về miền Tây.",
 	"Phục vụ đúng món khách gọi để qua ngày.",
 	"Đừng để Nam rơi khỏi ghe khi di chuyển.",
@@ -164,7 +164,7 @@ func _setup_skip_button() -> void:
 	_skip_button.texture_pressed = _skip_button.texture_normal
 	_skip_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	_skip_button.ignore_texture_size = true
-	_skip_button.tooltip_text = "Skip"
+	_skip_button.tooltip_text = "Bỏ qua"
 	# Nút Skip bỏ qua TOÀN BỘ intro và vào chơi luôn (không lật từng trang).
 	_skip_button.pressed.connect(_skip_intro)
 	add_child(_skip_button)

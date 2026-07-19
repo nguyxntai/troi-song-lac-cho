@@ -28,6 +28,19 @@ enum Step {
 	FREE_PLAY,          # Mở khoá, đợi 5 khách nữa
 }
 
+const VOICE_PATHS := {
+	Step.WELCOME_1: "res://assets/Voice/tutorial_01.mp3",
+	Step.WELCOME_2: "res://assets/Voice/tutorial_02.mp3",
+	Step.WELCOME_3: "res://assets/Voice/tutorial_03.mp3",
+	Step.EXPLAIN_MOVE: "res://assets/Voice/tutorial_04.mp3",
+	Step.EXPLAIN_ORDER_1: "res://assets/Voice/tutorial_05.mp3",
+	Step.EXPLAIN_ORDER_2: "res://assets/Voice/tutorial_06.mp3",
+	Step.EXPLAIN_SERVE: "res://assets/Voice/tutorial_08.mp3",
+	Step.OUTRO_2: "res://assets/Voice/tutorial_10.mp3",
+	Step.OUTRO_3: "res://assets/Voice/tutorial_11.mp3",
+	Step.OUTRO_5: "res://assets/Voice/tutorial_13.mp3",
+}
+
 var _step: int = Step.WELCOME_1
 
 # ── UI nodes ───────────────────────────────────────────────────────────
@@ -392,11 +405,13 @@ func _show_dialogue(text: String) -> void:
 	_is_dialogue_active = true
 	_dialogue_label.text = text
 	_dialogue_panel.visible = true
+	AudioManager.play_voice_file(String(VOICE_PATHS.get(_step, "")), -1.5)
 
 
 func _hide_dialogue() -> void:
 	_is_dialogue_active = false
 	_dialogue_panel.visible = false
+	AudioManager.stop_voice()
 
 
 # ══════════════════════════════════════════════════════════════════════

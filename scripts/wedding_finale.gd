@@ -1,7 +1,7 @@
 extends Control
 
-const HOME_TEXTURE: Texture2D = preload("res://assets/UI/win_menu/Home.png")
-const REPLAY_TEXTURE: Texture2D = preload("res://assets/UI/win_menu/ReplayLevel.png")
+const HOME_TEXTURE: Texture2D = preload("res://assets/UI/common_buttons/ve_menu.png")
+const REPLAY_TEXTURE: Texture2D = preload("res://assets/UI/common_buttons/choi_lai.png")
 const SATISFIED_TEXTURE: Texture2D = preload("res://assets/satisfied_emoji.png")
 const CONFETTI_COLORS := [
 	Color(1.0, 0.35, 0.35),

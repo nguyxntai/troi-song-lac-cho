@@ -29,6 +29,7 @@ const INTRO_DIALOGUE := [
 	{
 		"speaker": "Người dẫn chuyện",
 		"text": "Công việc vừa bắt đầu ổn định thì cha Nam đổ bệnh nặng. Tiền thuốc và viện phí trở thành gánh nặng mới của gia đình.",
+		"voice": "res://assets/Voice/chapter2_01.mp3",
 	},
 	{
 		"speaker": "Cha",
@@ -41,6 +42,7 @@ const INTRO_DIALOGUE := [
 	{
 		"speaker": "Mục tiêu Chương 2",
 		"text": "Duy trì quán qua nhiều ngày và tích đủ quỹ viện phí cho cha Nam.",
+		"voice": "res://assets/Voice/chapter2_04.mp3",
 	},
 ]
 
@@ -135,6 +137,7 @@ func _show_dialogue_line() -> void:
 	_speaker_label.text = String(line.get("speaker", ""))
 	_dialogue_label.text = String(line.get("text", ""))
 	_dialogue_root.visible = true
+	AudioManager.play_voice_file(String(line.get("voice", "")), -1.0)
 
 
 func _advance_dialogue() -> void:
@@ -148,6 +151,7 @@ func _advance_dialogue() -> void:
 func _finish_dialogue() -> void:
 	_dialogue_active = false
 	_dialogue_root.visible = false
+	AudioManager.stop_voice()
 	GameManager.is_tutorial_locked = false
 	get_tree().paused = false
 

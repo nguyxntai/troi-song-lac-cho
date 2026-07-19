@@ -13,6 +13,7 @@ const GOLD_TEXT := Color(0.98, 0.80, 0.42)           # chữ tiêu đề vàng
 const CREAM := Color(1.0, 0.96, 0.84)                # chữ thân
 const CREAM_SOFT := Color(0.96, 0.90, 0.78)
 const OUTLINE_DARK := Color(0.12, 0.06, 0.02)        # viền chữ
+const COMMON_BUTTON_TEXTURE: Texture2D = preload("res://assets/UI/common_buttons/button_blank.png")
 
 # Màu thanh (progress)
 const TRACK := Color(0.06, 0.035, 0.02, 0.92)        # rãnh thanh
@@ -60,7 +61,7 @@ static func bar_fill(color: Color, radius: int = 6) -> StyleBoxFlat:
 
 
 ## Chuẩn hoá một Label: cỡ, màu chữ, viền tối. outline<0 => tự tính theo cỡ.
-static func style_label(label: Label, size: int = FS_BODY, color: Color = CREAM, outline: int = -1) -> void:
+static func style_label(label: Control, size: int = FS_BODY, color: Color = CREAM, outline: int = -1) -> void:
 	if label == null:
 		return
 	label.add_theme_font_size_override("font_size", size)
@@ -73,3 +74,39 @@ static func style_label(label: Label, size: int = FS_BODY, color: Color = CREAM,
 ## Tiêu đề vàng.
 static func style_title(label: Label, size: int = FS_TITLE) -> void:
 	style_label(label, size, GOLD_TEXT)
+
+
+## Nút dùng cho mọi UI dựng bằng code. Dùng cùng bảng gỗ/khăn caro với các TextureButton.
+static func style_button(button: Button, _accent: Color = GOLD, font_size: int = FS_BODY) -> void:
+	if button == null:
+		return
+	button.add_theme_font_size_override("font_size", font_size)
+	button.add_theme_color_override("font_color", Color(1.0, 0.67, 0.08))
+	button.add_theme_color_override("font_outline_color", Color(0.34, 0.14, 0.01))
+	button.add_theme_constant_override("outline_size", maxi(3, int(round(font_size / 5.5))))
+
+	var normal := _common_button_style(Color.WHITE)
+	var hover := _common_button_style(Color(1.08, 1.08, 1.02, 1.0))
+	var pressed := _common_button_style(Color(0.82, 0.82, 0.82, 1.0))
+	var disabled := _common_button_style(Color(0.52, 0.52, 0.52, 0.72))
+
+	button.add_theme_color_override("font_hover_color", Color(1.0, 0.77, 0.22))
+	button.add_theme_color_override("font_pressed_color", Color(0.85, 0.46, 0.04))
+	button.add_theme_color_override("font_disabled_color", CREAM_SOFT.darkened(0.35))
+
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+
+
+static func _common_button_style(modulate: Color) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.texture = COMMON_BUTTON_TEXTURE
+	style.set_texture_margin(SIDE_LEFT, 58.0)
+	style.set_texture_margin(SIDE_TOP, 28.0)
+	style.set_texture_margin(SIDE_RIGHT, 58.0)
+	style.set_texture_margin(SIDE_BOTTOM, 28.0)
+	style.set_content_margin_all(10.0)
+	style.modulate_color = modulate
+	return style
