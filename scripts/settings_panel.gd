@@ -105,8 +105,7 @@ func _create_audio_row(content: VBoxContainer, title: String, callback: Callable
 	slider.step = 0.05
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.custom_minimum_size = Vector2(230.0, 38.0)
-	slider.add_theme_stylebox_override("slider", UIStyle.bar_track(8))
-	slider.add_theme_stylebox_override("grabber_area", UIStyle.bar_fill(UIStyle.GOLD, 8))
+	UIStyle.style_slider_wood(slider)
 	slider.value_changed.connect(callback)
 	row.add_child(slider)
 	var value_label := Label.new()

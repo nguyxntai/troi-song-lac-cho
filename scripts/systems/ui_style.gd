@@ -23,6 +23,12 @@ const FILL_HEALTH := Color(0.95, 0.55, 0.35)         # cam đào (sức khỏe)
 const FILL_HEALTH_LOW := Color(0.92, 0.30, 0.30)     # đỏ (sức khỏe thấp)
 const FILL_WARN := Color(1.0, 0.78, 0.30)            # vàng cảnh báo
 
+# Slider – gỗ tươi sáng, nổi bật trên nền gỗ tối
+const SLIDER_TRACK_COLOR := Color(0.55, 0.36, 0.20, 1.0)       # gỗ sáng trung bình
+const SLIDER_TRACK_BORDER := Color(0.40, 0.24, 0.10, 1.0)     # viền gỗ đậm hơn
+const SLIDER_FILL_COLOR := Color(0.90, 0.62, 0.22, 1.0)       # gỗ vàng sáng
+const SLIDER_GRABBER_COLOR := Color(0.98, 0.82, 0.44, 1.0)    # nút kéo vàng kem
+
 # Cỡ chữ chuẩn
 const FS_SMALL := 14
 const FS_BODY := 20
@@ -58,6 +64,63 @@ static func bar_fill(color: Color, radius: int = 6) -> StyleBoxFlat:
 	s.bg_color = color
 	s.set_corner_radius_all(radius)
 	return s
+
+
+## Rãnh slider gỗ tươi sáng (dùng cho Settings).
+static func slider_track(radius: int = 8) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = SLIDER_TRACK_COLOR
+	s.border_color = SLIDER_TRACK_BORDER
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(radius)
+	s.set_content_margin_all(2)
+	return s
+
+
+## Phần đầy slider gỗ vàng sáng (dùng cho Settings).
+static func slider_fill(radius: int = 8) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = SLIDER_FILL_COLOR
+	s.border_color = Color(0.72, 0.48, 0.14, 1.0)
+	s.set_border_width_all(1)
+	s.set_corner_radius_all(radius)
+	return s
+
+
+## Style toàn bộ HSlider với theme gỗ tươi sáng, nổi bật, dễ nhìn.
+static func style_slider_wood(slider: HSlider) -> void:
+	if slider == null:
+		return
+	# Track (rãnh nền)
+	slider.add_theme_stylebox_override("slider", slider_track(8))
+	# Grabber area (phần đã kéo)
+	slider.add_theme_stylebox_override("grabber_area", slider_fill(8))
+	# Grabber area khi hover
+	var fill_hover := slider_fill(8)
+	fill_hover.bg_color = SLIDER_FILL_COLOR.lightened(0.12)
+	slider.add_theme_stylebox_override("grabber_area_highlight", fill_hover)
+	# Grabber icon – vẽ hình tròn sáng
+	var grabber_tex := _create_circle_texture(20, SLIDER_GRABBER_COLOR, SLIDER_TRACK_BORDER)
+	slider.add_theme_icon_override("grabber", grabber_tex)
+	slider.add_theme_icon_override("grabber_highlight", _create_circle_texture(22, SLIDER_GRABBER_COLOR.lightened(0.15), GOLD))
+
+
+## Tạo texture hình tròn nhỏ dùng làm nút kéo slider.
+static func _create_circle_texture(diameter: int, fill_color: Color, border_color: Color) -> ImageTexture:
+	var img := Image.create(diameter, diameter, false, Image.FORMAT_RGBA8)
+	var center := Vector2(diameter / 2.0, diameter / 2.0)
+	var radius := diameter / 2.0
+	var border_width := 2.0
+	for y in range(diameter):
+		for x in range(diameter):
+			var dist := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if dist <= radius - border_width:
+				img.set_pixel(x, y, fill_color)
+			elif dist <= radius:
+				img.set_pixel(x, y, border_color)
+			else:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(img)
 
 
 ## Chuẩn hoá một Label: cỡ, màu chữ, viền tối. outline<0 => tự tính theo cỡ.

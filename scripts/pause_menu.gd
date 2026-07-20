@@ -57,7 +57,7 @@ func _build_ui() -> void:
 	_bg_rect = TextureRect.new()
 	_bg_rect.texture = BG_TEXTURE
 	_bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_bg_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_bg_rect.stretch_mode = TextureRect.STRETCH_SCALE
 	add_child(_bg_rect)
 	
 	# Nút thật được đặt lên artwork để có thể nhô lên khi hover.
@@ -107,6 +107,9 @@ func _relayout() -> void:
 	var scale_factor := minf(vp_size.x / base_bg_size.x * 0.8, vp_size.y / base_bg_size.y * 0.9)
 	var final_bg_size := base_bg_size * scale_factor
 	
+	# Đặt _bg_rect khớp đúng kích thước texture đã scale, canh giữa viewport.
+	# Dùng EXPAND_IGNORE_SIZE + STRETCH_SCALE để texture lấp đầy rect, không padding.
+	_bg_rect.stretch_mode = TextureRect.STRETCH_SCALE
 	_bg_rect.size = final_bg_size
 	_bg_rect.position = (vp_size - final_bg_size) * 0.5
 	
