@@ -45,6 +45,7 @@ var _logo_rect: TextureRect
 var _settings_panel: Node
 
 func _ready() -> void:
+	AudioManager.stop_ingame_music()
 	AudioManager.stop_river_loop()
 	AudioManager.stop_player_walking()
 	AudioManager.play_menu_music()

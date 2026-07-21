@@ -11,6 +11,7 @@ const EventManagerScript := preload("res://scripts/systems/event_manager.gd")
 const ResultsScreenScript := preload("res://scripts/systems/results_screen.gd")
 const TutorialManagerScript := preload("res://scripts/systems/tutorial_manager.gd")
 const Chapter1DirectorScript := preload("res://scripts/chapter1_director.gd")
+const IngameMusicButtonScript := preload("res://scripts/systems/ingame_music_button.gd")
 
 @export var reset_money_on_start: bool = false
 @export var spawn_economy_hud: bool = true
@@ -34,6 +35,7 @@ func _ready() -> void:
 
 	# Khởi tạo phiên chơi (giữ tiền & nâng cấp giữa các ngày).
 	GameManager.start_session(reset_money_on_start)
+	AudioManager.play_ingame_music_for_level()
 
 	_register_water_surface()
 	call_deferred("_spawn_systems")
@@ -54,6 +56,8 @@ func _spawn_systems() -> void:
 
 	if spawn_economy_hud:
 		_add_node(host, CanvasLayer.new(), EconomyHudScript, "EconomyHud")
+	if not _check_is_tutorial():
+		_add_node(host, CanvasLayer.new(), IngameMusicButtonScript, "IngameMusicButton")
 	if spawn_shop:
 		_add_node(host, CanvasLayer.new(), ShopPanelScript, "ShopPanel")
 	_add_node(host, CanvasLayer.new(), ResultsScreenScript, "ResultsScreen")

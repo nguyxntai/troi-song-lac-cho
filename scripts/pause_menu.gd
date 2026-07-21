@@ -15,8 +15,6 @@ const BUTTON_RECTS := [
 ]
 const SETTINGS_PANEL_SCRIPT: Script = preload("res://scripts/settings_panel.gd")
 
-const CHAPTER_MUSIC_NODE_NAME := "Chapter1Music"
-
 @export var fade_duration: float = 0.2
 @export var button_hover_scale: float = 1.08
 @export var button_hover_duration: float = 0.1
@@ -166,7 +164,7 @@ func _toggle_pause() -> void:
 	tree.paused = not tree.paused
 	
 	if tree.paused:
-		_set_chapter_music_paused(true)
+		AudioManager.set_ingame_music_paused(true)
 		_relayout() # Ensure sizing is correct on show
 		visible = true
 		_overlay.color.a = 0.0
@@ -179,7 +177,7 @@ func _toggle_pause() -> void:
 		tween.parallel().tween_property(_overlay, "color:a", 0.0, fade_duration)
 		tween.parallel().tween_property(_bg_rect, "modulate:a", 0.0, fade_duration)
 		tween.tween_callback(func(): visible = false)
-		_set_chapter_music_paused(false)
+		AudioManager.set_ingame_music_paused(false)
 
 
 func _on_resume_pressed() -> void:
@@ -194,7 +192,7 @@ func _on_settings_pressed() -> void:
 
 
 func _on_main_menu_pressed() -> void:
-	_stop_chapter_music()
+	AudioManager.stop_ingame_music()
 	AudioManager.stop_river_loop()
 	AudioManager.stop_player_walking()
 	get_tree().paused = false
@@ -204,23 +202,3 @@ func _on_main_menu_pressed() -> void:
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
-
-
-func _get_chapter_music() -> AudioStreamPlayer:
-	var root := get_tree().current_scene
-	if root == null:
-		return null
-
-	return root.find_child(CHAPTER_MUSIC_NODE_NAME, true, false) as AudioStreamPlayer
-
-
-func _set_chapter_music_paused(is_paused: bool) -> void:
-	var music := _get_chapter_music()
-	if music != null:
-		music.stream_paused = is_paused
-
-
-func _stop_chapter_music() -> void:
-	var music := _get_chapter_music()
-	if music != null:
-		music.stop()

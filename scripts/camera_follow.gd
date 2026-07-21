@@ -13,6 +13,7 @@ var _target: Node3D
 var _base_pos: Vector3
 var _yaw: float = 0.0
 var _pitch: float = deg_to_rad(8.0)
+var _mouse_manually_unlocked := false
 
 
 func _ready() -> void:
@@ -24,7 +25,7 @@ func _ready() -> void:
 		return
 
 	fov = third_person_fov
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_apply_mouse_mode()
 	_base_pos = _get_desired_camera_position()
 	global_position = _base_pos
 	look_at(_target.global_position + look_offset)
@@ -38,12 +39,19 @@ func _exit_tree() -> void:
 ## Quy tắc chuột thống nhất: game tạm dừng (mọi UI: ESC / thắng / thua / kết quả /
 ## shop / hội thoại) -> hiện con trỏ để bấm; đang chơi -> khoá để xoay camera.
 func _process(_delta: float) -> void:
-	var desired: int = Input.MOUSE_MODE_VISIBLE if get_tree().paused else Input.MOUSE_MODE_CAPTURED
-	if Input.mouse_mode != desired:
-		Input.mouse_mode = desired
+	_apply_mouse_mode()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and _is_alt_key(key_event):
+			if not get_tree().paused:
+				_mouse_manually_unlocked = not _mouse_manually_unlocked
+				_apply_mouse_mode()
+			get_viewport().set_input_as_handled()
+			return
+
 	# Chỉ xoay camera khi đang chơi (con trỏ đang bị khoá).
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= deg_to_rad(event.relative.x * mouse_sensitivity)
@@ -77,6 +85,16 @@ func get_flat_right() -> Vector3:
 	if right.length_squared() <= 0.0001:
 		return Vector3.RIGHT
 	return right.normalized()
+
+
+func _apply_mouse_mode() -> void:
+	var desired: int = Input.MOUSE_MODE_VISIBLE if get_tree().paused or _mouse_manually_unlocked else Input.MOUSE_MODE_CAPTURED
+	if Input.mouse_mode != desired:
+		Input.mouse_mode = desired
+
+
+func _is_alt_key(event: InputEventKey) -> bool:
+	return event.keycode == KEY_ALT or event.physical_keycode == KEY_ALT
 
 
 func _get_desired_camera_position() -> Vector3:

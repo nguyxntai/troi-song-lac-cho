@@ -459,6 +459,5 @@ func _on_menu() -> void:
 
 
 func _stop_chapter_music() -> void:
-	var music: Node = get_tree().current_scene.find_child("Chapter1Music", true, false)
-	if music and music.has_method("stop"):
-		music.call("stop")
+	AudioManager.stop_ingame_music()
+	AudioManager.stop_scene_chapter_music()

@@ -40,6 +40,7 @@ var _did_transition := false
 
 
 func _ready() -> void:
+	AudioManager.stop_ingame_music()
 	AudioManager.stop_menu_music()
 	AudioManager.stop_river_loop()
 	AudioManager.stop_player_walking()

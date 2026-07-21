@@ -17,6 +17,7 @@ var _velocities: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	AudioManager.stop_ingame_music()
 	AudioManager.stop_river_loop()
 	AudioManager.stop_player_walking()
 	AudioManager.play_win()

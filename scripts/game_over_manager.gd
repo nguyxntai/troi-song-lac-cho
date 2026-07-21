@@ -10,8 +10,6 @@ const WIN_BTN_CONTINUE: Texture2D = preload("res://assets/UI/common_buttons/tiep
 const WIN_BTN_HOME: Texture2D = preload("res://assets/UI/common_buttons/ve_menu.png")
 const LOADING_RING_SCRIPT: Script = preload("res://scripts/loading_ring.gd")
 
-const CHAPTER_MUSIC_NODE_NAME := "Chapter1Music"
-
 const REASON_FELL_IN_RIVER := "fell_in_river"
 const REASON_NOT_ENOUGH_CUSTOMERS := "not_enough_customers"
 const REASON_TOO_MANY_WRONG_ORDERS := "too_many_wrong_orders"
@@ -304,18 +302,9 @@ func _ensure_loading_panel() -> void:
 	center_container.add_child(_loading_ring)
 
 
-func _get_chapter_music() -> AudioStreamPlayer:
-	var root := get_tree().current_scene
-	if root == null:
-		return null
-
-	return root.find_child(CHAPTER_MUSIC_NODE_NAME, true, false) as AudioStreamPlayer
-
-
 func _stop_chapter_music() -> void:
-	var music := _get_chapter_music()
-	if music != null:
-		music.stop()
+	AudioManager.stop_ingame_music()
+	AudioManager.stop_scene_chapter_music()
 
 
 func _build_ui() -> void:

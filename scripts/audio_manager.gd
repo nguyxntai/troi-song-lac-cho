@@ -20,10 +20,16 @@ const MENU_MUSIC_TRACKS: Array[AudioStream] = [
 	preload("res://assets/Music/Mekong-Drift-Chill.ogg"),
 	preload("res://assets/Music/Mekong-Drift-EDM.ogg"),
 ]
+const INGAME_MUSIC_TRACKS: Array[AudioStream] = [
+	preload("res://assets/Music/Floating Market Morning.mp3"),
+	preload("res://assets/Music/Stir Fry Sprint (Chapter1backgroundmusic).ogg"),
+]
 ## Nhạc "ký ức" êm đềm — nổi lên khi Nam vào vùng kỷ vật sau tủ lạnh.
 const MEMORY_THEME: AudioStream = preload("res://assets/Music/beautiful_dream.mp3")
 
 # Mức âm khi vào/ra chế độ ký ức.
+const INGAME_BASE_DB := -14.0
+const INGAME_DUCK_DB := -30.0
 const RIVER_BASE_DB := -18.0
 const RIVER_DUCK_DB := -34.0
 const MEMORY_LOUD_DB := -3.0
@@ -32,20 +38,27 @@ const MEMORY_FADE_IN := 1.3
 const MEMORY_FADE_OUT := 1.1
 
 var _menu_music_player: AudioStreamPlayer
+var _ingame_music_player: AudioStreamPlayer
 var _river_player: AudioStreamPlayer
 var _walking_player: AudioStreamPlayer
 var _memory_player: AudioStreamPlayer
 var _voice_player: AudioStreamPlayer
 var _menu_music_should_loop := false
+var _ingame_music_should_loop := false
+var _ingame_track_index := -1
 var _river_should_loop := false
 var _walking_should_loop := false
 var _memory_should_loop := false
+var _memory_mode_active := false
+var _ingame_music_tween: Tween
 var _memory_tween: Tween
 var _river_duck_tween: Tween
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_rng.randomize()
 	_ensure_audio_buses()
 	_setup_loop_players()
 	if not get_tree().node_added.is_connected(_on_node_added):
@@ -107,6 +120,53 @@ func stop_menu_music() -> void:
 	_menu_music_should_loop = false
 	if _menu_music_player != null:
 		_menu_music_player.stop()
+
+
+func play_ingame_music_for_level() -> void:
+	if _ingame_music_player == null or INGAME_MUSIC_TRACKS.is_empty():
+		return
+
+	stop_menu_music()
+	stop_scene_chapter_music()
+	_ingame_music_should_loop = true
+	_play_ingame_track(_pick_random_ingame_track(false))
+
+
+func change_ingame_music() -> void:
+	if _ingame_music_player == null or INGAME_MUSIC_TRACKS.is_empty():
+		return
+
+	_ingame_music_should_loop = true
+	_play_ingame_track(_pick_random_ingame_track(true))
+
+
+func stop_ingame_music() -> void:
+	_ingame_music_should_loop = false
+	_ingame_track_index = -1
+	if _ingame_music_tween and _ingame_music_tween.is_valid():
+		_ingame_music_tween.kill()
+	if _ingame_music_player != null:
+		_ingame_music_player.stop()
+
+
+func set_ingame_music_paused(is_paused: bool) -> void:
+	if _ingame_music_player != null:
+		_ingame_music_player.stream_paused = is_paused
+
+
+func is_ingame_music_playing() -> bool:
+	return _ingame_music_player != null and _ingame_music_player.playing
+
+
+func stop_scene_chapter_music() -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+
+	var legacy_music := scene.find_child("Chapter1Music", true, false) as AudioStreamPlayer
+	if legacy_music != null:
+		legacy_music.stop()
+		legacy_music.stream_paused = true
 
 
 func play_river_loop() -> void:
@@ -175,6 +235,13 @@ func _setup_loop_players() -> void:
 	_menu_music_player.finished.connect(_restart_menu_music)
 	add_child(_menu_music_player)
 
+	_ingame_music_player = AudioStreamPlayer.new()
+	_ingame_music_player.name = "IngameMusic"
+	_ingame_music_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_ingame_music_player.bus = MUSIC_BUS
+	_ingame_music_player.finished.connect(_restart_ingame_music)
+	add_child(_ingame_music_player)
+
 	_river_player = AudioStreamPlayer.new()
 	_river_player.name = "RiverSFX"
 	_river_player.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -211,6 +278,11 @@ func _restart_menu_music() -> void:
 		_menu_music_player.play()
 
 
+func _restart_ingame_music() -> void:
+	if _ingame_music_should_loop and _ingame_music_player != null:
+		_ingame_music_player.play()
+
+
 func _restart_river_loop() -> void:
 	if _river_should_loop and _river_player != null:
 		_river_player.play()
@@ -225,6 +297,12 @@ func _restart_walking_loop() -> void:
 ## Vào vùng ký ức: hạ tiếng sông xuống, nổi nhạc êm đềm lên to hơn.
 func enter_memory_mode() -> void:
 	_memory_should_loop = true
+	_memory_mode_active = true
+	if _ingame_music_player != null and _ingame_music_player.playing:
+		if _ingame_music_tween and _ingame_music_tween.is_valid():
+			_ingame_music_tween.kill()
+		_ingame_music_tween = create_tween()
+		_ingame_music_tween.tween_property(_ingame_music_player, "volume_db", INGAME_DUCK_DB, MEMORY_FADE_IN)
 	# Hạ tiếng sông.
 	if _river_player != null:
 		if _river_duck_tween and _river_duck_tween.is_valid():
@@ -247,6 +325,12 @@ func enter_memory_mode() -> void:
 ## Rời vùng ký ức: trả tiếng sông về cũ, mờ dần rồi tắt nhạc ký ức.
 func exit_memory_mode() -> void:
 	_memory_should_loop = false
+	_memory_mode_active = false
+	if _ingame_music_player != null and _ingame_music_player.playing:
+		if _ingame_music_tween and _ingame_music_tween.is_valid():
+			_ingame_music_tween.kill()
+		_ingame_music_tween = create_tween()
+		_ingame_music_tween.tween_property(_ingame_music_player, "volume_db", INGAME_BASE_DB, MEMORY_FADE_OUT)
 	if _river_player != null:
 		if _river_duck_tween and _river_duck_tween.is_valid():
 			_river_duck_tween.kill()
@@ -382,6 +466,33 @@ func _assign_known_audio_bus(node: Node) -> void:
 func play_combo_ding(combo: int) -> void:
 	var pitch: float = clampf(1.0 + float(combo) * 0.12, 1.0, 2.4)
 	play_pitched(UI_CLICK, -3.0, pitch)
+
+
+func _play_ingame_track(track_index: int) -> void:
+	if track_index < 0 or track_index >= INGAME_MUSIC_TRACKS.size():
+		return
+
+	_ingame_track_index = track_index
+	_ingame_music_player.stop()
+	_ingame_music_player.stream = _duplicate_looped_stream(INGAME_MUSIC_TRACKS[track_index])
+	_ingame_music_player.stream_paused = false
+	_ingame_music_player.volume_db = INGAME_DUCK_DB if _memory_mode_active else INGAME_BASE_DB
+	_ingame_music_player.play()
+
+
+func _pick_random_ingame_track(avoid_current: bool) -> int:
+	if INGAME_MUSIC_TRACKS.is_empty():
+		return -1
+	if INGAME_MUSIC_TRACKS.size() == 1:
+		return 0
+
+	var candidates: Array[int] = []
+	for index in range(INGAME_MUSIC_TRACKS.size()):
+		if not avoid_current or index != _ingame_track_index:
+			candidates.append(index)
+	if candidates.is_empty():
+		return _rng.randi_range(0, INGAME_MUSIC_TRACKS.size() - 1)
+	return int(candidates[_rng.randi_range(0, candidates.size() - 1)])
 
 
 func _duplicate_looped_stream(source: AudioStream) -> AudioStream:
