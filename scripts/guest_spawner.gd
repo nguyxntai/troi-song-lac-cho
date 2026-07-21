@@ -9,13 +9,14 @@ const GUEST_DEFINITIONS: Array[Dictionary] = [
 		"walk": preload("res://assets/Khach1/animations/walk.res"),
 		"siteat": preload("res://assets/Khach1/animations/siteat.res"),
 	},
-	{
-		"name": "Khach4",
-		"scene": preload("res://assets/Khach4/Khachdulich.glb"),
-		"idle": preload("res://assets/Khach4/animations/idle.res"),
-		"walk": preload("res://assets/Khach4/animations/walk.res"),
-		"siteat": preload("res://assets/Khach4/animations/siteat.res"),
-	},
+	# --- Khach4 tạm bỏ khỏi gameplay chính thức ---
+	#{
+	#	"name": "Khach4",
+	#	"scene": preload("res://assets/Khach4/Khachdulich.glb"),
+	#	"idle": preload("res://assets/Khach4/animations/idle.res"),
+	#	"walk": preload("res://assets/Khach4/animations/walk.res"),
+	#	"siteat": preload("res://assets/Khach4/animations/siteat.res"),
+	#},
 ]
 
 @export var auto_spawn: bool = true

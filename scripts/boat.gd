@@ -5,12 +5,19 @@ extends AnimatableBody3D
 @export var float_amplitude: float = 0.08 # Độ cao nhấp nhô (0.08 mét là vừa đủ nhẹ nhàng)
 @export var rotation_amplitude: float = 1.5 # Độ nghiêng nhẹ của thuyền khi gặp sóng (tính bằng độ)
 
+## Tên các node con trực tiếp cần tô tối (vd: ghe3, ghe4). Để trống = không tô.
+@export var darken_children: PackedStringArray = []
+## Màu nhân tối cho các thuyền được liệt kê ở trên.
+@export var darken_color: Color = Color(0.45, 0.40, 0.35, 1.0)
+
 var time_passed: float = 0.0
 var initial_y: float = 0.0
 
 func _ready():
 	# Lưu lại vị trí độ cao Y ban đầu của con thuyền khi bắt đầu game
 	initial_y = global_position.y
+	# Tô tối các thuyền con được chỉ định
+	_apply_darken()
 
 func _physics_process(delta: float):
 	# Cộng dồn thời gian trôi qua theo delta vật lý
@@ -33,3 +40,24 @@ func _physics_process(delta: float):
 	# Cập nhật tọa độ thực tế của thuyền (vì Sync To Physics đã bật nên việc gán này cực kỳ an toàn)
 	global_position.y = target_y
 	rotation.z = next_rotation_z
+
+
+func _apply_darken() -> void:
+	if darken_children.is_empty():
+		return
+	for child_name in darken_children:
+		var child: Node = get_node_or_null(NodePath(child_name))
+		if child:
+			_darken_meshes_recursive(child)
+
+
+func _darken_meshes_recursive(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance: MeshInstance3D = node as MeshInstance3D
+		var dark_mat := StandardMaterial3D.new()
+		dark_mat.albedo_color = darken_color
+		dark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		dark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+		mesh_instance.material_overlay = dark_mat
+	for child in node.get_children():
+		_darken_meshes_recursive(child)
