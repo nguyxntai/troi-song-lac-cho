@@ -34,7 +34,7 @@ var _player: Node3D
 
 func _ready() -> void:
 	_rng.randomize()
-	_timer = start_delay
+	_timer = _get_initial_delay()
 	GameManager.set_weather_slip_budget(0)
 	_cache_scene_refs()
 	_apply_weather(Weather.MILD, true)
@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 	if _timer <= 0.0:
 		var next_weather := _pick_next_weather()
 		_apply_weather(next_weather, false)
-		_timer = storm_duration if next_weather == Weather.STORM else _rng.randf_range(weather_roll_min, weather_roll_max)
+		_timer = _get_storm_duration() if next_weather == Weather.STORM else _rng.randf_range(weather_roll_min, weather_roll_max)
 	_update_rain_follow()
 
 
@@ -57,18 +57,20 @@ func _pick_next_weather() -> int:
 	# Không cho bão nối bão; giữa hai cơn luôn có một quãng thời tiết thường.
 	if _weather == Weather.STORM:
 		return Weather.DRY if _rng.randf() < 0.4 else Weather.MILD
-	if _storm_count >= max_storms_per_day:
+	if _storm_count >= _get_storm_limit():
 		return Weather.DRY if _rng.randf() < 0.35 else Weather.MILD
-	# Thời điểm vẫn ngẫu nhiên, nhưng ngày ngắn luôn có ít nhất một lần mưa nhẹ.
-	if _storm_count == 0 and _elapsed >= guaranteed_storm_after:
+	# Ngày đầu không ép bão; ngày 2 cho người chơi gấp đôi thời gian chuẩn bị.
+	var guaranteed_after: float = guaranteed_storm_after * (2.0 if GameManager.day_index == 2 else 1.0)
+	if GameManager.day_index > 1 and _storm_count == 0 and _elapsed >= guaranteed_after:
 		return Weather.STORM
 	if _storm_cooldown_left > 0.0:
 		return Weather.DRY if _rng.randf() < 0.35 else Weather.MILD
 
 	var roll := _rng.randf()
-	if roll < storm_chance:
+	var adjusted_storm_chance: float = storm_chance * _get_adverse_scale()
+	if roll < adjusted_storm_chance:
 		return Weather.STORM
-	if roll < storm_chance + dry_chance:
+	if roll < adjusted_storm_chance + dry_chance:
 		return Weather.DRY
 	return Weather.MILD
 
@@ -94,6 +96,7 @@ func _cache_scene_refs() -> void:
 
 func _apply_weather(weather: int, _is_initial: bool) -> void:
 	_weather = weather
+	var adverse_scale: float = _get_adverse_scale()
 	var slip := 0.0
 	var deviation := 0.0
 	var drink_bias := 0.0
@@ -103,23 +106,24 @@ func _apply_weather(weather: int, _is_initial: bool) -> void:
 
 	match weather:
 		Weather.DRY:
-			drink_bias = 0.6
-			cooling = 1.35
-			light_mult = 1.15
+			drink_bias = 0.6 * adverse_scale
+			cooling = lerpf(1.0, 1.35, adverse_scale)
+			light_mult = lerpf(1.0, 1.15, adverse_scale)
 		Weather.STORM:
 			# Bão đủ vui để trượt/rớt vài lần, nhưng số lần rớt được GameManager giới hạn.
-			slip = 0.13
-			deviation = 0.14
-			drink_bias = -0.15
-			cooling = 1.05
-			boat_mult = 1.38
+			slip = 0.13 * adverse_scale
+			deviation = 0.14 * adverse_scale
+			drink_bias = -0.15 * adverse_scale
+			cooling = lerpf(1.0, 1.05, adverse_scale)
+			boat_mult = lerpf(1.0, 1.38, adverse_scale)
 			if GameManager.has_anti_slip():
-				boat_mult = 1.23
-			light_mult = 0.78
-			_storm_cooldown_left = maxf(storm_cooldown, storm_duration)
+				boat_mult = lerpf(1.0, 1.23, adverse_scale)
+			light_mult = lerpf(1.0, 0.78, adverse_scale)
+			_storm_cooldown_left = maxf(storm_cooldown, _get_storm_duration())
 			_storm_count += 1
 			if not _weather_slip_budget_configured:
-				GameManager.set_weather_slip_budget(1 if GameManager.has_anti_slip() else 3)
+				var slip_budget: int = 1 if GameManager.day_index <= 1 else (2 if GameManager.day_index == 2 else 3)
+				GameManager.set_weather_slip_budget(1 if GameManager.has_anti_slip() else slip_budget)
 				_weather_slip_budget_configured = true
 		_:
 			pass
@@ -175,7 +179,7 @@ func _build_rain() -> GPUParticles3D:
 	var particles := GPUParticles3D.new()
 	particles.name = "RainEffect"
 	# Mật độ vừa đủ nhìn rõ nhưng nhẹ hơn mức cũ, nhất là trên máy tích hợp GPU.
-	particles.amount = 360
+	particles.amount = int(round(lerpf(180.0, 360.0, _get_adverse_scale())))
 	particles.lifetime = 1.2
 	particles.local_coords = false
 	# Hạt mưa theo Nam nên phải có bounds lớn; bounds mặc định dễ bị camera cull
@@ -207,3 +211,27 @@ func _build_rain() -> GPUParticles3D:
 
 func current_weather() -> int:
 	return _weather
+
+
+func _get_adverse_scale() -> float:
+	if GameManager.day_index <= 1:
+		return 0.25
+	if GameManager.day_index == 2:
+		return 0.55
+	return 1.0
+
+
+func _get_initial_delay() -> float:
+	if GameManager.day_index <= 1:
+		return start_delay + 30.0
+	if GameManager.day_index == 2:
+		return start_delay + 15.0
+	return start_delay
+
+
+func _get_storm_duration() -> float:
+	return storm_duration * lerpf(0.55, 1.0, _get_adverse_scale())
+
+
+func _get_storm_limit() -> int:
+	return 1 if GameManager.day_index <= 2 else max_storms_per_day

@@ -3,7 +3,7 @@ extends CanvasLayer
 const BG_TEXTURE := preload("res://assets/UI/pause_menu/pause_vietnamese_clean.png")
 const BTN_RESUME: Texture2D = preload("res://assets/UI/pause_menu/buttons/resume.png")
 const BTN_SETTINGS: Texture2D = preload("res://assets/UI/pause_menu/buttons/settings.png")
-const BTN_MAIN_MENU: Texture2D = preload("res://assets/UI/pause_menu/buttons/main_menu.png")
+const BTN_MAIN_MENU: Texture2D = preload("res://assets/UI/pause_menu/buttons/main_menu_fixed.png")
 const BTN_EXIT: Texture2D = preload("res://assets/UI/pause_menu/buttons/exit.png")
 
 # Vùng bấm theo tỉ lệ artwork mới: resume, settings, menu, exit.

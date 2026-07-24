@@ -51,6 +51,7 @@ const ORDER_OPTIONS: Array[Dictionary] = [
 @export var served_food_rotation: Vector3 = Vector3.ZERO
 @export var serve_marker_side_offset: float = 1.05
 @export var serve_marker_forward_offset: float = 0.0
+@export_range(0.8, 2.0, 0.05) var serve_guest_radius: float = 1.25
 
 var _state: int = State.IDLE
 var _anim_player: AnimationPlayer
@@ -163,6 +164,8 @@ func _setup_model(model_scene: PackedScene) -> void:
 	_model_root = model as Node3D
 	_anim_player = model.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if _anim_player:
+		_anim_player.stop()
+		_anim_player.autoplay = &""
 		_anim_player.set("callback_mode_process", 0)
 		_anim_player.set("playback_process_mode", 0)
 		_anim_player.set("root_motion_track", NodePath(""))
@@ -270,6 +273,8 @@ func _ensure_animation(animation_name: StringName, animation: Animation, should_
 		animation_copy.loop_mode = Animation.LOOP_LINEAR
 
 	_strip_non_skeleton_transform_tracks(animation_copy)
+	if animation_name == ANIM_IDLE or animation_name == ANIM_WALK:
+		_make_root_bone_translation_in_place(animation_copy)
 	_remove_animation_from_all_libraries(animation_name)
 
 	var library: AnimationLibrary
@@ -306,8 +311,39 @@ func _strip_non_skeleton_transform_tracks(animation: Animation) -> void:
 		var track_path: NodePath = animation.track_get_path(track_index)
 		var target_node: Node = _resolve_animation_track_node(track_path)
 		var is_skeleton_bone_track: bool = (target_node is Skeleton3D) and track_path.get_subname_count() > 0
-		if target_node and not is_skeleton_bone_track:
+		if not is_skeleton_bone_track:
 			animation.remove_track(track_index)
+
+
+func _make_root_bone_translation_in_place(animation: Animation) -> void:
+	for track_index in range(animation.get_track_count()):
+		if animation.track_get_type(track_index) != Animation.TYPE_POSITION_3D:
+			continue
+
+		var track_path: NodePath = animation.track_get_path(track_index)
+		var skeleton: Skeleton3D = _resolve_animation_track_node(track_path) as Skeleton3D
+		if not skeleton or track_path.get_subname_count() == 0:
+			continue
+
+		var bone_index: int = skeleton.find_bone(String(track_path.get_subname(0)))
+		if bone_index < 0 or skeleton.get_bone_parent(bone_index) != -1:
+			continue
+
+		var key_count: int = animation.track_get_key_count(track_index)
+		if key_count == 0:
+			continue
+
+		var first_value: Variant = animation.track_get_key_value(track_index, 0)
+		if not first_value is Vector3:
+			continue
+		var anchor: Vector3 = first_value as Vector3
+		for key_index in range(key_count):
+			var value_variant: Variant = animation.track_get_key_value(track_index, key_index)
+			if value_variant is Vector3:
+				var value: Vector3 = value_variant as Vector3
+				value.x = anchor.x
+				value.z = anchor.z
+				animation.track_set_key_value(track_index, key_index, value)
 
 
 func _resolve_animation_track_node(track_path: NodePath) -> Node:
@@ -449,6 +485,10 @@ func _is_player_on_interact_marker() -> bool:
 		return false
 
 	var local_player_position: Vector3 = to_local(interaction_player.global_position)
+	if _state == State.SITTING:
+		var guest_delta := Vector2(local_player_position.x, local_player_position.z)
+		return guest_delta.length_squared() <= serve_guest_radius * serve_guest_radius
+
 	var marker_center: Vector3 = _get_current_interact_marker_center()
 	var marker_size: Vector3 = _get_current_interact_marker_size()
 	var delta_from_marker: Vector3 = local_player_position - marker_center
@@ -722,14 +762,14 @@ func _get_interact_prompt_position(is_pressed: bool = false) -> Vector3:
 
 func _get_current_interact_marker_center() -> Vector3:
 	if _state == State.SITTING:
-		return _get_serve_marker_center()
+		return Vector3.ZERO
 
 	return INTERACT_MARKER_CENTER
 
 
 func _get_current_interact_marker_size() -> Vector3:
 	if _state == State.SITTING:
-		return SERVE_MARKER_SIZE
+		return Vector3(serve_guest_radius * 2.0, SERVE_MARKER_SIZE.y, serve_guest_radius * 2.0)
 
 	return INTERACT_MARKER_SIZE
 

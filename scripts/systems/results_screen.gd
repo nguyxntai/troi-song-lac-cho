@@ -10,12 +10,18 @@ const CREAM := Color(1.0, 0.96, 0.86, 1.0)
 
 var _root: Control
 var _title_label: Label
+var _box: PanelContainer
 var _medal_panel: Panel
 var _medal_label: Label
 var _score_label: Label
 var _detail_label: Label
 var _record_label: Label
 var _rank_label: Label
+var _served_value: Label
+var _five_star_value: Label
+var _wrong_value: Label
+var _missed_value: Label
+var _best_value: Label
 var _replay_btn: Button
 var _upgrade_btn: Button
 var _contribute_btn: Button
@@ -36,12 +42,15 @@ var _next_scene_path: String = ""
 var _completed_chapter_index: int = 0
 var _score_display: int = 0
 var _count_tween: Tween
+var _layout_scale: float = 1.0
 
 
 func _ready() -> void:
 	layer = 12
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_ui()
+	get_viewport().size_changed.connect(_relayout)
+	_relayout()
 	_root.visible = false
 
 
@@ -107,12 +116,13 @@ func _populate(results: Dictionary, is_win: bool, header: String) -> void:
 		sb.border_color = CREAM
 	_medal_label.add_theme_color_override("font_color", Color(0.15, 0.1, 0.0) if medal >= 2 else CREAM)
 
-	var stars: int = clampi(int(results.get("five_stars", 0)), 0, 9)
-	_detail_label.text = "%s  5 sao\nSai: %d   ·   Lỡ khách: %d" % [
-		("★".repeat(stars) if stars > 0 else "0"),
-		int(results.get("wrong", 0)),
-		int(results.get("missed", 0)),
-	]
+	var stars: int = maxi(int(results.get("five_stars", 0)), 0)
+	_detail_label.text = "HIỆU SUẤT PHỤC VỤ"
+	_served_value.text = "%d khách" % int(results.get("served", 0))
+	_five_star_value.text = "%d" % stars
+	_wrong_value.text = "%d" % int(results.get("wrong", 0))
+	_missed_value.text = "%d" % int(results.get("missed", 0))
+	_best_value.text = "%d điểm" % int(results.get("best", 0))
 
 	if bool(results.get("is_record", false)):
 		_record_label.text = "★  KỶ LỤC MỚI!  ★"
@@ -130,14 +140,13 @@ func _populate(results: Dictionary, is_win: bool, header: String) -> void:
 
 func _animate_in(results: Dictionary, is_win: bool) -> void:
 	# Panel bật vào.
-	var box: Control = _root.get_node("Box")
-	box.scale = Vector2(0.7, 0.7)
-	box.modulate.a = 0.0
-	box.pivot_offset = Vector2(260, 270)
-	var t := box.create_tween()
+	_box.scale = Vector2.ONE * (_layout_scale * 0.7)
+	_box.modulate.a = 0.0
+	_box.pivot_offset = _box.size * 0.5
+	var t := _box.create_tween()
 	t.set_parallel(true)
-	t.tween_property(box, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	t.tween_property(box, "modulate:a", 1.0, 0.25)
+	t.tween_property(_box, "scale", Vector2.ONE * _layout_scale, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(_box, "modulate:a", 1.0, 0.25)
 
 	# Huy chương "đóng dấu".
 	_medal_panel.pivot_offset = _medal_panel.size * 0.5
@@ -186,33 +195,48 @@ func _build_ui() -> void:
 	_root.add_child(dim)
 
 	# Hộp gỗ.
-	var box := PanelContainer.new()
-	box.name = "Box"
-	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.custom_minimum_size = Vector2(520, 540)
-	box.offset_left = -260
-	box.offset_top = -270
-	box.offset_right = 260
-	box.offset_bottom = 270
-	box.add_theme_stylebox_override("panel", UIStyle.wood_panel(20, 22, true))
-	_root.add_child(box)
+	_box = PanelContainer.new()
+	_box.name = "Box"
+	_box.set_anchors_preset(Control.PRESET_CENTER)
+	_box.custom_minimum_size = Vector2(620, 650)
+	_box.offset_left = -310
+	_box.offset_top = -325
+	_box.offset_right = 310
+	_box.offset_bottom = 325
+	_box.add_theme_stylebox_override("panel", UIStyle.wood_panel(20, 22, true))
+	_root.add_child(_box)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 14)
-	box.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 12)
+	_box.add_child(vbox)
 
 	_title_label = _make_label("", 30, CREAM)
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_title_label.custom_minimum_size = Vector2(0, 46)
 	vbox.add_child(_title_label)
 
-	# Huy chương tròn.
+	var overview := HBoxContainer.new()
+	overview.alignment = BoxContainer.ALIGNMENT_CENTER
+	overview.add_theme_constant_override("separation", 18)
+	overview.custom_minimum_size = Vector2(0, 350)
+	overview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(overview)
+
+	var score_column := VBoxContainer.new()
+	score_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	score_column.custom_minimum_size = Vector2(190, 0)
+	score_column.add_theme_constant_override("separation", 8)
+	overview.add_child(score_column)
+
 	var medal_center := CenterContainer.new()
-	vbox.add_child(medal_center)
+	score_column.add_child(medal_center)
 	_medal_panel = Panel.new()
-	_medal_panel.custom_minimum_size = Vector2(150, 150)
+	_medal_panel.custom_minimum_size = Vector2(164, 164)
 	var medal_style := StyleBoxFlat.new()
 	medal_style.bg_color = Color(0.7, 0.7, 0.7)
-	medal_style.set_corner_radius_all(75)
+	medal_style.set_corner_radius_all(82)
 	medal_style.border_color = CREAM
 	medal_style.set_border_width_all(5)
 	_medal_panel.add_theme_stylebox_override("panel", medal_style)
@@ -225,46 +249,97 @@ func _build_ui() -> void:
 	_medal_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_medal_panel.add_child(_medal_label)
 
-	_score_label = _make_label("0", 56, Color(1.0, 0.92, 0.45))
+	_score_label = _make_label("0", 54, Color(1.0, 0.92, 0.45))
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(_score_label)
-	var score_cap := _make_label("ĐIỂM", 16, Color(0.8, 0.75, 0.6))
+	score_column.add_child(_score_label)
+	var score_cap := _make_label("TỔNG ĐIỂM", 16, Color(0.8, 0.75, 0.6))
 	score_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(score_cap)
+	score_column.add_child(score_cap)
 
-	_detail_label = _make_label("", 19, CREAM)
-	_detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(_detail_label)
-
-	_record_label = _make_label("", 22, Color(0.85, 0.82, 0.7))
+	_record_label = _make_label("", 19, Color(0.85, 0.82, 0.7))
 	_record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(_record_label)
+	_record_label.custom_minimum_size = Vector2(210, 32)
+	score_column.add_child(_record_label)
+
+	var divider := ColorRect.new()
+	divider.color = Color(0.85, 0.66, 0.34, 0.45)
+	divider.custom_minimum_size = Vector2(2, 286)
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overview.add_child(divider)
+
+	var summary_column := VBoxContainer.new()
+	summary_column.custom_minimum_size = Vector2(348, 0)
+	summary_column.add_theme_constant_override("separation", 12)
+	overview.add_child(summary_column)
+
+	_detail_label = _make_label("", 21, Color(1.0, 0.84, 0.28))
+	_detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	summary_column.add_child(_detail_label)
+
+	var stats_grid := GridContainer.new()
+	stats_grid.columns = 2
+	stats_grid.add_theme_constant_override("h_separation", 16)
+	stats_grid.add_theme_constant_override("v_separation", 10)
+	stats_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary_column.add_child(stats_grid)
+	_served_value = _add_stat_row(stats_grid, "Khách đã phục vụ")
+	_five_star_value = _add_stat_row(stats_grid, "Đánh giá 5 sao")
+	_wrong_value = _add_stat_row(stats_grid, "Giao sai món")
+	_missed_value = _add_stat_row(stats_grid, "Khách bỏ đi")
+	_best_value = _add_stat_row(stats_grid, "Kỷ lục ngày")
+
+	var rank_divider := HSeparator.new()
+	rank_divider.modulate = Color(0.85, 0.66, 0.34, 0.6)
+	summary_column.add_child(rank_divider)
 
 	_rank_label = _make_label("", 18, Color(0.95, 0.9, 0.75))
-	_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(_rank_label)
+	_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_rank_label.custom_minimum_size = Vector2(348, 96)
+	summary_column.add_child(_rank_label)
 
-	# Nút.
-	var btn_row := HBoxContainer.new()
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_row.add_theme_constant_override("separation", 18)
-	vbox.add_child(btn_row)
+	var btn_grid := GridContainer.new()
+	btn_grid.columns = 2
+	btn_grid.add_theme_constant_override("h_separation", 16)
+	btn_grid.add_theme_constant_override("v_separation", 10)
+	btn_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	vbox.add_child(btn_grid)
 
 	_replay_btn = _make_button("Chơi lại", Color(0.85, 0.5, 0.2))
 	_replay_btn.pressed.connect(_on_replay)
-	btn_row.add_child(_replay_btn)
+	btn_grid.add_child(_replay_btn)
 
 	_contribute_btn = _make_button("Đóng góp", Color(0.82, 0.62, 0.18))
 	_contribute_btn.pressed.connect(_on_contribute)
-	btn_row.add_child(_contribute_btn)
+	btn_grid.add_child(_contribute_btn)
 
 	_upgrade_btn = _make_button("Nâng cấp", Color(0.25, 0.62, 0.38))
 	_upgrade_btn.pressed.connect(_on_upgrade)
-	btn_row.add_child(_upgrade_btn)
+	btn_grid.add_child(_upgrade_btn)
 
 	_menu_btn = _make_button("Về Menu", Color(0.4, 0.45, 0.5))
 	_menu_btn.pressed.connect(_on_menu)
-	btn_row.add_child(_menu_btn)
+	btn_grid.add_child(_menu_btn)
+
+
+func _relayout() -> void:
+	if not _box:
+		return
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var available_size: Vector2 = viewport_size - Vector2(24.0, 24.0)
+	_layout_scale = minf(1.0, minf(available_size.x / 620.0, available_size.y / 650.0))
+	_box.pivot_offset = _box.size * 0.5
+	_box.scale = Vector2.ONE * _layout_scale
+
+
+func _add_stat_row(grid: GridContainer, title: String) -> Label:
+	var title_label := _make_label(title, 18, Color(0.88, 0.84, 0.72))
+	grid.add_child(title_label)
+	var value_label := _make_label("0", 19, CREAM)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_child(value_label)
+	return value_label
 
 
 func _make_label(text: String, size: int, color: Color) -> Label:
@@ -277,8 +352,8 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 func _make_button(text: String, color: Color) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(145, 54)
-	UIStyle.style_button(b, color, 22)
+	b.custom_minimum_size = Vector2(180, 50)
+	UIStyle.style_button(b, color, 20)
 	return b
 
 
