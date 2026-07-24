@@ -319,7 +319,7 @@ func _do_new_game() -> void:
 	if _confirm_layer != null:
 		_confirm_layer.visible = false
 	SaveManager.reset_all_progress()
-	SaveManager.set_game_started(true)
+	GameManager.should_show_new_player_guidelines = true
 	PauseMenu.has_played_intro = false
 	# Đưa về đúng luồng lần đầu: chạy cutscene rồi vào tutorial.
 	gameplay_scene_path = "res://scenes/comic_intro.tscn"
@@ -468,11 +468,14 @@ func _on_play_pressed() -> void:
 
 	AudioManager.stop_menu_music()
 
-	if SaveManager.has_completed_tutorial() and SaveManager.get_current_chapter() >= 2:
-		gameplay_scene_path = "res://scenes/chapter3.tscn" if SaveManager.get_current_chapter() >= 3 else "res://scenes/chapter2.tscn"
-	elif PauseMenu.has_played_intro:
-		gameplay_scene_path = "res://scenes/chapter1.tscn" if SaveManager.has_completed_tutorial() else "res://scenes/tutorial.tscn"
+	# Người chơi đã từng vào gameplay luôn quay lại màn chính đã lưu, không phát
+	# lại comic/tutor. Cờ này chỉ được lưu khi tutorial đã thực sự được mở.
+	if SaveManager.has_started_game():
+		GameManager.should_show_new_player_guidelines = false
+		gameplay_scene_path = _resolve_resume_gameplay_path()
 	else:
+		# Lần chơi đầu tiên mới đi qua comic và tutorial.
+		gameplay_scene_path = "res://scenes/comic_intro.tscn"
 		PauseMenu.has_played_intro = true
 
 	_is_loading_gameplay = true
@@ -506,6 +509,15 @@ func _resolve_real_gameplay_path() -> String:
 	if SaveManager.get_current_chapter() >= 3:
 		return "res://scenes/chapter3.tscn"
 	if SaveManager.get_current_chapter() == 2:
+		return "res://scenes/chapter2.tscn"
+	return "res://scenes/chapter1.tscn"
+
+
+func _resolve_resume_gameplay_path() -> String:
+	var chapter: int = SaveManager.get_current_chapter()
+	if chapter >= 3:
+		return "res://scenes/chapter3.tscn"
+	if chapter == 2:
 		return "res://scenes/chapter2.tscn"
 	return "res://scenes/chapter1.tscn"
 

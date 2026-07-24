@@ -72,7 +72,7 @@ func _build_ui() -> void:
 
 	_money_label = Label.new()
 	_money_label.name = "MoneyLabel"
-	_money_label.text = "$0"
+	_money_label.text = Currency.format_vnd(0)
 	_money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_money_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_money_label.add_theme_font_size_override("font_size", 20)
@@ -176,7 +176,7 @@ func _build_ui() -> void:
 func _refresh_money(new_amount: int, delta: int) -> void:
 	if _money_label == null:
 		return
-	_money_label.text = "$%d" % new_amount
+	_money_label.text = Currency.format_vnd(new_amount)
 	if delta != 0 and is_instance_valid(_money_label):
 		var c: Color = Color(0.15, 0.55, 0.15) if delta > 0 else Color(0.7, 0.2, 0.2)
 		_money_label.add_theme_color_override("font_color", c)

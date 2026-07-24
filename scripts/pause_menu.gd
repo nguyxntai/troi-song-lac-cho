@@ -91,6 +91,7 @@ func _create_button(texture: Texture2D, tooltip: String, callback: Callable) -> 
 	_buttons.append(btn)
 	return btn
 
+
 func _relayout() -> void:
 	if not _bg_rect:
 		return

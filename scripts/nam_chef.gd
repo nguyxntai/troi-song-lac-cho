@@ -197,7 +197,8 @@ func _handle_drop_and_slip(delta: float, is_carrying: bool, is_moving: bool) -> 
 
 	# Thả đồ thủ công (test): phím Q.
 	if enable_manual_drop and not GameManager.is_tutorial_locked and InputMap.has_action(drop_action) and Input.is_action_just_pressed(drop_action):
-		drop_carried_item(1.0)
+		if drop_carried_item(1.0):
+			EventBus.food_manually_dropped.emit("")
 		return
 
 	# Tuột tay ngẫu nhiên khi mùa bão (slip_chance do WeatherManager set).

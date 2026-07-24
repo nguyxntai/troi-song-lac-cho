@@ -40,6 +40,9 @@ const RANKS := [
 var money: int = 0
 var chapter_index: int = 1
 var day_index: int = 1
+## Chỉ true trong lượt bắt đầu bằng "Chơi mới". Không lưu vào save để nút
+## Tiếp tục luôn bỏ qua các guideline của người chơi mới.
+var should_show_new_player_guidelines: bool = false
 var combo_count: int = 0
 var generous_remaining: int = 0
 var popularity: float = 0.0

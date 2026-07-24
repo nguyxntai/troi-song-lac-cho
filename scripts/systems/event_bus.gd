@@ -17,6 +17,10 @@ signal combo_changed(count: int, is_generous: bool)
 signal food_dropped_in_water(food_id: String)
 signal food_rescued(food_id: String, quality: float)
 signal food_lost_in_water(food_id: String)
+signal food_picked_up(food_id: String)
+signal food_manually_dropped(food_id: String)
+signal drink_taken()
+signal tutorial_dialogue_completed()
 
 # ----- Thời tiết -----
 signal weather_changed(weather_type: int)         # WeatherManager.Weather

@@ -91,6 +91,8 @@ func spawn_xa_xi_to_hand(player: Node3D) -> void:
 	var carry_parent: Node = _find_carry_visual_parent(hand_slot)
 	carry_parent.add_child(lon_moi)
 	holder.set_meta(CARRY_VISUAL_META, lon_moi)
+	EventBus.drink_taken.emit()
+	EventBus.food_picked_up.emit(DRINK_FOOD_ID)
 	print("Thanh cong! Lon xa xi da xuat hien tren tay NamChef.")
 	_spawn_effect(EFFECT_SAXI, player)
 	AudioManager.play_fridge()

@@ -628,7 +628,7 @@ func _play_serve_juice(stars: int, total: int) -> void:
 	var pos: Vector3 = global_position + Vector3.UP * 2.2
 	var color: Color = Color(0.4, 1.0, 0.45)
 	# Tiền bay lên.
-	Juice.popup_text(pos + Vector3.UP * 0.3, "+$%d" % total, color, 46, 1.2)
+	Juice.popup_text(pos + Vector3.UP * 0.3, "+%s" % Currency.format_vnd(total), color, 46, 1.2)
 	AudioManager.play_combo_ding(GameManager.combo_count)
 
 	if stars >= 5:

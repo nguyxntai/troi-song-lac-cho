@@ -12,7 +12,7 @@ const UPGRADES := [
 	{"id": "move_speed", "name": "Bước chân nhanh", "desc": "+8% tốc độ di chuyển", "cost": 70, "max": 3, "step": 45},
 	{"id": "guest_patience", "name": "Phục vụ thân thiện", "desc": "+15% thời gian khách chờ", "cost": 65, "max": 3, "step": 40},
 	{"id": "bowl_capacity", "name": "Thêm chồng tô", "desc": "+2 tô dùng được mỗi ngày", "cost": 55, "max": 3, "step": 35},
-	{"id": "premium", "name": "Nguyên liệu cao cấp", "desc": "+5$ mỗi món bán ra", "cost": 60, "max": 3, "step": 40},
+	{"id": "premium", "name": "Nguyên liệu cao cấp", "desc": "+5 VND mỗi món bán ra", "cost": 60, "max": 3, "step": 40},
 	{"id": "tip_boost", "name": "Khéo chiều khách", "desc": "+3 tip mỗi sao", "cost": 50, "max": 3, "step": 35},
 	{"id": "anti_slip", "name": "Ủng chống trượt", "desc": "Giảm tuột tay khi bão", "cost": 80, "max": 1, "step": 0},
 	{"id": "canopy", "name": "Mái che", "desc": "Đồ lâu ngấm nước / nguội", "cost": 80, "max": 1, "step": 0},
@@ -187,7 +187,7 @@ func _on_buy(data: Dictionary) -> void:
 
 func _refresh() -> void:
 	if _money_label:
-		_money_label.text = "$%d" % GameManager.money
+		_money_label.text = Currency.format_vnd(GameManager.money)
 	if _status_label:
 		if _unlimited_purchases:
 			_status_label.text = "Mua tuỳ ý — giới hạn là số tiền bạn có"
@@ -206,5 +206,5 @@ func _refresh() -> void:
 			btn.disabled = true
 		else:
 			var cost: int = _cost_for(data, level)
-			btn.text = "Mua  $%d" % cost
+			btn.text = "Mua  %s" % Currency.format_vnd(cost)
 			btn.disabled = not GameManager.can_afford(cost) or cap_reached

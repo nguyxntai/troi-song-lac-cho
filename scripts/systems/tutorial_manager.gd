@@ -66,6 +66,9 @@ var _serve_callback: Callable
 # ══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	# Đã vào gameplay ít nhất một lần: lần sau nút "Tiếp tục" sẽ vào thẳng
+	# chapter đang lưu, không buộc chạy lại comic hay tutorial.
+	SaveManager.set_game_started(true)
 	# ── Tìm GuestSpawner và tạm dừng auto-spawn ──
 	_spawner = get_tree().current_scene.find_child("GuestSpawner", true, false)
 	if _spawner:
@@ -199,6 +202,7 @@ func _play_step() -> void:
 		Step.FREE_PLAY:
 			_hide_dialogue()
 			GameManager.is_tutorial_locked = false
+			EventBus.tutorial_dialogue_completed.emit()
 			# Đánh dấu đã hoàn thành tutorial
 			SaveManager.set_tutorial_completed(true)
 			# Bật lại spawner

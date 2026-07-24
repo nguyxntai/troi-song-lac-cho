@@ -404,10 +404,10 @@ func _ensure_contrib_panel() -> void:
 	amount_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	amount_row.add_theme_constant_override("separation", 12)
 	vbox.add_child(amount_row)
-	var btn100 := _make_button("+$100", Color(0.82, 0.62, 0.18))
+	var btn100 := _make_button("+100 VND", Color(0.82, 0.62, 0.18))
 	btn100.pressed.connect(_contribute_amount.bind(100))
 	amount_row.add_child(btn100)
-	var btn300 := _make_button("+$300", Color(0.82, 0.62, 0.18))
+	var btn300 := _make_button("+300 VND", Color(0.82, 0.62, 0.18))
 	btn300.pressed.connect(_contribute_amount.bind(300))
 	amount_row.add_child(btn300)
 	var btn_all := _make_button("Đóng hết", Color(0.85, 0.45, 0.2))
@@ -431,8 +431,8 @@ func _refresh_contrib() -> void:
 		return
 	var goal: int = GameManager.get_stage_money_goal()
 	var fund: int = GameManager.get_stage_fund()
-	_contrib_info.text = "Ví của bạn: $%d\nMục tiêu: %d / %d\nCòn thiếu: $%d" % [
-		GameManager.money, mini(fund, goal), goal, GameManager.get_stage_fund_remaining(),
+	_contrib_info.text = "Ví của bạn: %s\nMục tiêu: %s / %s\nCòn thiếu: %s" % [
+		Currency.format_vnd(GameManager.money), Currency.format_vnd(mini(fund, goal)), Currency.format_vnd(goal), Currency.format_vnd(GameManager.get_stage_fund_remaining()),
 	]
 
 

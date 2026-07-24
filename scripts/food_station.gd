@@ -174,8 +174,9 @@ func _spawn_food_item(hand_slot: Node, result_stage: int) -> Node:
 		item_3d.rotation_degrees = result_local_rotation
 		item_3d.scale = result_local_scale
 
-	visual_parent.add_child(item)
+		visual_parent.add_child(item)
 	holder.set_meta(CARRY_VISUAL_META, item)
+	EventBus.food_picked_up.emit(_get_result_food_id(result_stage))
 	return holder
 
 
